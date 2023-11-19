@@ -1,13 +1,3 @@
-export type Workspace = {
-    num: number;
-    name: string;
-    visible: boolean;
-    focused: boolean;
-    urgent: boolean;
-    output: string;
-    rect: Rect;
-}
-
 export type Outputs = Output[]
 
 export interface Output {
@@ -51,12 +41,6 @@ export interface Output {
   subpixel_hinting: string
 }
 
-export interface Rect {
-  x: number
-  y: number
-  width: number
-  height: number
-}
 export interface Mode {
   width: number
   height: number

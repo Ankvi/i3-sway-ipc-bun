@@ -1,5 +1,15 @@
-import { SwaySocket } from "./SwaySocket";
+import { Command } from "commander";
+import { IpcSocket } from "./IpcSocket";
 
-const swaySocket = await SwaySocket.getSocket();
+const program = new Command();
 
-await swaySocket.process();
+program
+    .command("start-server")
+    .option("--i3", "Use i3 instead of Sway")
+    .action(async ({ i3 }) => {
+        const socket = await IpcSocket.getSocket(i3 ? "i3" : "sway");
+
+        await socket.process();
+    })
+
+await program.parseAsync();
