@@ -1,5 +1,6 @@
-import { Rect, Workspace } from "./common";
+import { Root } from "./common";
 import { Output } from "./output";
+import { Workspace } from "./workspace";
 
 export const Command = {
     run_command: 0,
@@ -40,6 +41,8 @@ type GetOutputsReply = Output[];
 
 type GetWorkspacesReply = Workspace[];
 
+type GetTreeReply = Root;
+
 export type CommandPayloads = {
     [Command.run_command]: unknown;
     [Command.get_workspaces]: unknown;
@@ -61,7 +64,7 @@ export type CommandReplies = {
     [Command.get_workspaces]: GetWorkspacesReply;
     [Command.subscribe]: SubscribeReply;
     [Command.get_outputs]: GetOutputsReply;
-    [Command.get_tree]: unknown;
+    [Command.get_tree]: GetTreeReply;
     [Command.get_marks]: unknown;
     [Command.get_bar_config]: unknown;
     [Command.get_version]: unknown;

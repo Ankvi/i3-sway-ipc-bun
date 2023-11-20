@@ -1,5 +1,5 @@
 import { Socket, connect } from "net";
-import { IpcEvent } from "./types/event";
+import { IpcEvent, IpcEventHandler, IpcEventPayloads } from "./types/event";
 import { IpcMessage, create } from "./IpcMessage";
 import { Command, CommandPayloads, CommandReplies, getCommandName } from "./types/command";
 import { randomUUID } from "crypto";
@@ -17,7 +17,7 @@ const SOCKET_ENV_VAR_CONFIG = {
 } as const;
 
 type EventListeners = {
-    [K in IpcEvent]: Map<string, (payload: string) => void>;
+    [K in IpcEvent]: Map<string, IpcEventHandler<K>>;
 };
 // type CommandResponseListeners = {
 //     [K in Command]: Map<string, (payload: CommandReplies[K]) => void>;
@@ -100,10 +100,11 @@ export class IpcSocket {
     private _processMessage() {
         const message = new IpcMessage(this._socket);
         if (message.isEvent) {
+            const payload = JSON.parse(message.getPayload());
             const type = message.getType() as IpcEvent;
             const listeners = this._eventListeners[type];
             for (const listener of listeners.values()) {
-                listener(message.getPayload());
+                listener(payload);
             }
             return;
         }
@@ -117,7 +118,7 @@ export class IpcSocket {
         // }
     }
 
-    on<T extends IpcEvent>(event: T, handler: () => void): string {
+    on<T extends IpcEvent>(event: T, handler: IpcEventHandler<T>): string {
         const guid = randomUUID();
         this._eventListeners[event].set(guid, handler);
         return guid;
@@ -127,9 +128,9 @@ export class IpcSocket {
         this._eventListeners[event].delete(guid);
     }
 
-    once<T extends IpcEvent>(event: T, handler: (payload: string) => void) {
+    once<T extends IpcEvent>(event: T, handler: IpcEventHandler<T>) {
         const guid = randomUUID();
-        this._eventListeners[event].set(guid, (payload: string) => {
+        this._eventListeners[event].set(guid, (payload) => {
             handler(payload);
             this._eventListeners[event].delete(guid);
         });

@@ -18,3 +18,16 @@ export interface WindowEvent {
   change: string
   container: Container
 }
+
+export type IpcEventPayloads = {
+    [IpcEvent.workspace]: Record<string, unknown>;
+    [IpcEvent.window]: WindowEvent;
+    [IpcEvent.output]: Record<string, unknown>;
+    [IpcEvent.mode]: Record<string, unknown>;
+    [IpcEvent.bar_config_update]: Record<string, unknown>;
+    [IpcEvent.binding]: Record<string, unknown>;
+    [IpcEvent.shutdown]: Record<string, unknown>;
+    [IpcEvent.tick]: Record<string, unknown>;
+}
+
+export type IpcEventHandler<T extends IpcEvent> = (payload: IpcEventPayloads[T]) => (void | Promise<void>);
