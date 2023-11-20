@@ -1,3 +1,5 @@
+import { Container } from "./common";
+
 export const IpcEvent = {
     workspace: 0,
     output: 1,
@@ -10,3 +12,9 @@ export const IpcEvent = {
 } as const;
 
 export type IpcEvent = typeof IpcEvent[keyof typeof IpcEvent];
+
+
+export interface WindowEvent {
+  change: string
+  container: Container
+}

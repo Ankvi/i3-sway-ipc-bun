@@ -1,12 +1,15 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.2.2/schema.json",
-  "organizeImports": {
-    "enabled": false
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true
+    "$schema": "https://biomejs.dev/schemas/1.2.2/schema.json",
+    "organizeImports": {
+        "enabled": false
+    },
+    "formatter": {
+        "lineWidth": 100
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true
+        }
     }
-  }
 }

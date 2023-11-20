@@ -1,3 +1,5 @@
+import { Container, Rect } from "./common"
+
 export type Outputs = Output[]
 
 export interface Output {
@@ -6,7 +8,7 @@ export interface Output {
   orientation: string
   percent: number
   urgent: boolean
-  marks: any[]
+  marks: string[]
   layout: string
   border: string
   current_border_width: number
@@ -15,9 +17,9 @@ export interface Output {
   window_rect: Rect
   geometry: Rect
   name: string
-  window: any
-  nodes: any[]
-  floating_nodes: any[]
+  window: Container; 
+  nodes: Container[]
+  floating_nodes: Container[]
   focus: number[]
   fullscreen_mode: number
   sticky: boolean

@@ -20,7 +20,7 @@ export function create<T extends keyof CommandPayloads>(type: T, payload: Comman
 
 export class IpcMessage {
     private _payload?: Buffer;
-    public type: IpcEvent;
+    private _type: Command | IpcEvent;
     public isEvent: boolean;
 
     constructor(socket: Socket) {
@@ -30,7 +30,7 @@ export class IpcMessage {
             throw new Error(`Magic mismatch. Expected ${MAGIC}, but found ${magic}`)
         }
         const payloadLength = header.readUInt32LE(MAGIC_LENGTH);
-        this.type = header.readUInt16LE(MAGIC_LENGTH + 4) as IpcEvent;
+        this._type = header.readUInt16LE(MAGIC_LENGTH + 4) as IpcEvent;
         this.isEvent = (header.readUInt8(MAGIC_LENGTH + 7) & 0x80) === 0x80;
 
         if (payloadLength > 0) {
@@ -43,6 +43,13 @@ export class IpcMessage {
             return this._payload.toString();
         }
         return "";
+    }
+
+    getType() {
+        if (this.isEvent) {
+            return this._type as IpcEvent;
+        }
+        return this._type as Command;
     }
 }
 

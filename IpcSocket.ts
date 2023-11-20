@@ -1,41 +1,67 @@
 import { Socket, connect } from "net";
 import { IpcEvent } from "./types/event";
 import { IpcMessage, create } from "./IpcMessage";
-import { Command } from "./types/command";
+import { Command, CommandPayloads, CommandReplies, getCommandName } from "./types/command";
 import { randomUUID } from "crypto";
+import { Output } from "./types/output";
+import { Provider } from "./types";
 
-const socketPathEnvVars = {
-    sway: Bun.env.SWAYSOCK,
-    i3: Bun.env.I3SOCK
+const COMMAND_CONFIG = {
+    i3: "i3-msg",
+    sway: "swaymsg --raw",
 } as const;
 
-type Listeners = { [K in IpcEvent]: Map<string, (payload: string) => void> };
+const SOCKET_ENV_VAR_CONFIG = {
+    sway: Bun.env.SWAYSOCK,
+    i3: Bun.env.I3SOCK,
+} as const;
+
+type EventListeners = {
+    [K in IpcEvent]: Map<string, (payload: string) => void>;
+};
+// type CommandResponseListeners = {
+//     [K in Command]: Map<string, (payload: CommandReplies[K]) => void>;
+// };
 
 export class IpcSocket {
+    private _provider: Provider; 
     private _socket: Socket;
-    private _listeners: Listeners;
+    private _eventListeners: EventListeners;
+    // private _commandResponseListeners: CommandResponseListeners;
 
-    private constructor(socket: Socket) {
+    private constructor(provider: "i3" | "sway", socket: Socket) {
+        this._provider = provider;
         this._socket = socket;
 
-        // this._socket.on("data", (message) => this._processMessages(message));
         this._socket.on("connect", () => {
             this._subscribeToEvents();
         });
         this._socket.on("readable", () => this._processMessage());
         this._socket.on("error", console.error);
 
-        this._listeners = Object.values(IpcEvent).reduce<Listeners>((output, event) => {
-            output[event] = new Map();
-            return output;
-        }, {} as Listeners);
+        this._eventListeners = Object.values(IpcEvent).reduce<EventListeners>(
+            (output, event) => {
+                output[event] = new Map();
+                return output;
+            },
+            {} as EventListeners,
+        );
+
+        // this._commandResponseListeners = Object.values(
+        //     Command,
+        // ).reduce<CommandResponseListeners>((output, event) => {
+        //     output[event] = new Map();
+        //     return output;
+        // }, {} as CommandResponseListeners);
 
         process.on("SIGINT", () => this._close());
         process.on("SIGTERM", () => this._close());
     }
 
-    static async getSocket(provider: "sway" | "i3" = "sway"): Promise<IpcSocket> {
-        let socketPath = socketPathEnvVars[provider];
+    static async getSocket(
+        provider: Provider = "sway",
+    ): Promise<IpcSocket> {
+        let socketPath = SOCKET_ENV_VAR_CONFIG[provider];
         if (!socketPath) {
             const getSocketPathProc = Bun.spawn([provider, "--get-socketpath"]);
             await getSocketPathProc.exited;
@@ -51,15 +77,14 @@ export class IpcSocket {
 
         const socket = connect(socketPath);
         return new Promise((resolve) => {
-            const swaySocket = new IpcSocket(socket);
+            const swaySocket = new IpcSocket(provider, socket);
             socket.once("connect", () => resolve(swaySocket));
         });
     }
 
     private _subscribeToEvents() {
-        // const eventNames = Object.keys(IpcEvent);
-        // const command = create(Command.Subscribe, JSON.stringify(eventNames));
-        const command = create(Command.Subscribe, ["window"]);
+        const eventNames = Object.keys(IpcEvent);
+        const command = create(Command.subscribe, eventNames);
         this._sendMessage(command);
     }
 
@@ -69,40 +94,77 @@ export class IpcSocket {
     }
 
     private _sendMessage(message: Buffer) {
-        // console.log("Sending message");
         this._socket.write(message);
     }
-    
+
     private _processMessage() {
         const message = new IpcMessage(this._socket);
-        const listeners = this._listeners[message.type];
-        for (const listener of listeners.values()) {
-            listener(message.getPayload());
+        if (message.isEvent) {
+            const type = message.getType() as IpcEvent;
+            const listeners = this._eventListeners[type];
+            for (const listener of listeners.values()) {
+                listener(message.getPayload());
+            }
+            return;
         }
-        // console.log(`Processed message through 'readable' event: ${message.getPayload()}`);
+        console.log("Received command. Skipping");
+        // const type = message.getType() as Command;
+        // const listeners = this._commandResponseListeners[type];
+        // for (const [key, listener] of listeners.entries()) {
+        //     const payload = JSON.parse(message.getPayload());
+        //     listener(payload);
+        //     listeners.delete(key);
+        // }
     }
-
-    // private async _processMessages(message: Buffer) {
-    //     const response = await new Response(message).text();
-    //     console.log(`Processed message through 'data' event: ${response}`);
-    // }
 
     on<T extends IpcEvent>(event: T, handler: () => void): string {
         const guid = randomUUID();
-        this._listeners[event].set(guid, handler);
+        this._eventListeners[event].set(guid, handler);
         return guid;
     }
 
     delete<T extends IpcEvent>(event: T, guid: string) {
-        this._listeners[event].delete(guid);
+        this._eventListeners[event].delete(guid);
     }
 
     once<T extends IpcEvent>(event: T, handler: (payload: string) => void) {
         const guid = randomUUID();
-        this._listeners[event].set(guid, (payload: string) => {
+        this._eventListeners[event].set(guid, (payload: string) => {
             handler(payload);
-            this._listeners[event].delete(guid);
-        })
+            this._eventListeners[event].delete(guid);
+        });
+    }
+
+    async command<T extends Command>(
+        command: T,
+        payload: CommandPayloads[T],
+    ): Promise<CommandReplies[T]> {
+        const msgCommand = COMMAND_CONFIG[this._provider];
+
+        const commandName = getCommandName(command);
+
+        const msgArgs: string[] = [msgCommand, "-t", commandName];
+        if (payload) {
+            msgArgs.push("-m", JSON.stringify(payload));
+        }
+
+        const proc = Bun.spawn([msgCommand, "-t", commandName], {
+            stderr: "pipe",
+        });
+        const exitCode = await proc.exited;
+        if (exitCode) {
+            const error = await new Response(proc.stderr).text();
+            throw new Error(error);
+        }
+
+        const response = await new Response(proc.stdout).json<
+            CommandReplies[T]
+        >();
+        return response;
+    }
+
+    async outputs(): Promise<Output[]> {
+        return await this.command(Command.get_outputs, null);
     }
 
     process(): Promise<void> {
