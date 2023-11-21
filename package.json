@@ -1,13 +1,14 @@
 {
-  "name": "sway-ipc-bun",
-  "module": "index.ts",
-  "type": "module",
-  "devDependencies": {
-    "@biomejs/biome": "1.3.3",
-    "bun-types": "latest",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "commander": "^11.1.0"
-  }
+    "name": "sway-ipc-bun",
+    "module": "index.ts",
+    "bin": "index.ts",
+    "type": "module",
+    "devDependencies": {
+        "@biomejs/biome": "1.3.3",
+        "bun-types": "latest",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "commander": "^11.1.0"
+    }
 }

@@ -1,0 +1,53 @@
+{
+    "id": 64,
+    "type": "con",
+    "orientation": "none",
+    "percent": 0.49789915966386555,
+    "urgent": false,
+    "marks": [],
+    "focused": true,
+    "layout": "none",
+    "border": "pixel",
+    "current_border_width": 0,
+    "rect": {
+        "x": 964,
+        "y": 52,
+        "width": 948,
+        "height": 1140
+    },
+    "deco_rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+    },
+    "window_rect": {
+        "x": 0,
+        "y": 0,
+        "width": 948,
+        "height": 1140
+    },
+    "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 600
+    },
+    "name": "andreas@kvist-netlight-laptop:~/git/github.com/Ankvi/i3-sway-ipc-bun/features/__tests__/test-data",
+    "window": null,
+    "nodes": [],
+    "floating_nodes": [],
+    "focus": [],
+    "fullscreen_mode": 0,
+    "sticky": false,
+    "pid": 42905,
+    "app_id": "Alacritty",
+    "visible": true,
+    "max_render_time": 0,
+    "shell": "xdg_shell",
+    "inhibit_idle": false,
+    "idle_inhibitors": {
+        "user": "none",
+        "application": "none"
+    }
+}

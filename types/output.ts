@@ -1,4 +1,4 @@
-import { Container, Rect } from "./common";
+import { Container } from "./common";
 import { Content } from "./content";
 
 export type Outputs = Output[];

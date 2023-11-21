@@ -1,5 +1,5 @@
-import { Root } from "./common";
 import { Output } from "./output";
+import { Root } from "./root";
 import { Workspace } from "./workspace";
 
 export const Command = {

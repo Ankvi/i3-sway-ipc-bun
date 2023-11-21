@@ -1,5 +1,3 @@
-import { Output } from "./output";
-
 export interface WindowProperties {
     class: string;
     instance: string;
@@ -49,10 +47,6 @@ export interface Container {
     swallows: unknown[];
 }
 
-export interface Root extends Container {
-    type: "root";
-    nodes: Output[];
-}
 
 export interface Rect {
     x: number;

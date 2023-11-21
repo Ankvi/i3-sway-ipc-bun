@@ -1,6 +1,6 @@
 import { Socket } from "net";
-import { Command, CommandPayloads } from "./types/command";
-import { IpcEvent } from "./types/event";
+import { Command, CommandPayloads } from "./types/commands";
+import { IpcEvent } from "./types/events";
 
 const MAGIC = "i3-ipc";
 const MAGIC_LENGTH = MAGIC.length;

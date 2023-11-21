@@ -1,7 +1,7 @@
 import { Socket, connect } from "net";
-import { IpcEvent, IpcEventHandler, IpcEventPayloads } from "./types/event";
+import { IpcEvent, IpcEventHandler } from "./types/events";
 import { IpcMessage, create } from "./IpcMessage";
-import { Command, CommandPayloads, CommandReplies, getCommandName } from "./types/command";
+import { Command, CommandPayloads, CommandReplies, getCommandName } from "./types/commands";
 import { randomUUID } from "crypto";
 import { Output } from "./types/output";
 import { Provider } from "./types";

@@ -1,9 +1,9 @@
 import { IpcSocket } from "../IpcSocket";
-import { Command } from "../types/command";
+import { Command } from "../types/commands";
 import { Container } from "../types/common";
-import { IpcEvent, WindowEvent } from "../types/event";
+import { IpcEvent, WindowEvent } from "../types/events";
 
-function findFocused(root: Container): Container | undefined {
+export function findFocused(root: Container): Container | undefined {
     const queue = [root];
     let current: Container | undefined;
     while (queue.length > 0) {
