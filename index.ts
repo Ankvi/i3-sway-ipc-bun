@@ -13,7 +13,11 @@ interface ProgramOptions {
 
 const program = new Command();
 program
-    .option("-p,--provider <provider>", "Provider to use (i3/sway)", "sway");
+    .option("-p,--provider <provider>", "Provider to use (i3/sway)", "sway")
+    .hook("preSubcommand", (command) => {
+        const options = command.opts<ProgramOptions>();
+        Bun.env.IPC_PROVIDER = options.provider;
+    });
 
 program
     .command("window-dimming")

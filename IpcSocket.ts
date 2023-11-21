@@ -5,16 +5,7 @@ import { Command, CommandPayloads, CommandReplies, getCommandName } from "./type
 import { randomUUID } from "crypto";
 import { Output } from "./types/output";
 import { Provider } from "./types";
-
-const COMMAND_CONFIG = {
-    i3: "i3-msg",
-    sway: "swaymsg --raw",
-} as const;
-
-const SOCKET_ENV_VAR_CONFIG = {
-    sway: Bun.env.SWAYSOCK,
-    i3: Bun.env.I3SOCK,
-} as const;
+import { getMessageCommand, getSocketPath } from "./config";
 
 type EventListeners = {
     [K in IpcEvent]: Map<string, IpcEventHandler<K>>;
@@ -24,13 +15,11 @@ type EventListeners = {
 // };
 
 export class IpcSocket {
-    private _provider: Provider; 
     private _socket: Socket;
     private _eventListeners: EventListeners;
     // private _commandResponseListeners: CommandResponseListeners;
 
-    private constructor(provider: "i3" | "sway", socket: Socket) {
-        this._provider = provider;
+    private constructor(socket: Socket) {
         this._socket = socket;
 
         this._socket.on("connect", () => {
@@ -61,7 +50,7 @@ export class IpcSocket {
     static async getSocket(
         provider: Provider = "sway",
     ): Promise<IpcSocket> {
-        let socketPath = SOCKET_ENV_VAR_CONFIG[provider];
+        let socketPath = getSocketPath(); 
         if (!socketPath) {
             const getSocketPathProc = Bun.spawn([provider, "--get-socketpath"]);
             await getSocketPathProc.exited;
@@ -77,7 +66,7 @@ export class IpcSocket {
 
         const socket = connect(socketPath);
         return new Promise((resolve) => {
-            const swaySocket = new IpcSocket(provider, socket);
+            const swaySocket = new IpcSocket(socket);
             socket.once("connect", () => resolve(swaySocket));
         });
     }
@@ -140,7 +129,7 @@ export class IpcSocket {
         command: T,
         payload: CommandPayloads[T],
     ): Promise<CommandReplies[T]> {
-        const msgCommand = COMMAND_CONFIG[this._provider];
+        const msgCommand = getMessageCommand(); 
 
         const commandName = getCommandName(command);
 
