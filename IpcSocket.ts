@@ -8,8 +8,7 @@ import {
     getCommandName,
 } from "./types/commands";
 import { randomUUID } from "crypto";
-import { Output } from "./types/output";
-import { Provider } from "./types";
+import { Output } from "./types/containers";
 import { getMessageCommand, getSocketPath } from "./config";
 
 type EventListeners = {

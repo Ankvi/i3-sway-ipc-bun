@@ -1,21 +1,28 @@
 import { IpcSocket } from "../IpcSocket";
 import { opacity } from "../messageCommands";
 import { Command } from "../types/commands";
-import { Container, ContainerType, Root } from "../types/common";
-import { Content } from "../types/content";
+import {
+    Container,
+    ContainerType,
+    ContainerTypes,
+    Content,
+    FloatingContent,
+    Root,
+    isContent,
+} from "../types/containers";
 import { IpcEvent, WindowEvent } from "../types/events";
 
 const DIMMED_TRANSPARENCY = 0.8;
 const ACTIVE_TRANSPARENCY = 1.0;
 
-export function findFocused(root: Root): Container<ContainerType> | undefined {
+export function findFocused(root: Root): Container | undefined {
     const flattened = flatten(root);
     return flattened.find((x) => x.focused);
 }
 
-export function flatten(root: Root): Container<ContainerType>[] {
-    const output: Container<ContainerType>[] = [root];
-    const queue: Container<ContainerType>[] = [root];
+export function flatten(root: Root): Container[] {
+    const output: Container[] = [root];
+    const queue: Container[] = [root];
 
     while (queue.length > 0) {
         const current = queue.pop();
@@ -70,25 +77,25 @@ class WindowDimming {
     private async initialize() {
         const tree = await this._ipcSocket.command(Command.get_tree, null);
         const flattened = flatten(tree);
-        const content = flattened.filter(
-            (x) => x.type === "con" || x.type === "floating_con",
-        ) as Content[];
+        const content = flattened.filter<Content | FloatingContent>(isContent);
         for (const con of content) {
-            opacity(con.pid, con.focused ? ACTIVE_TRANSPARENCY : DIMMED_TRANSPARENCY);
+            opacity(
+                con.pid,
+                con.focused ? ACTIVE_TRANSPARENCY : DIMMED_TRANSPARENCY,
+            );
         }
     }
 
     private async onWindowEvent(event: WindowEvent) {
         const focused = event.container;
-        
+
         if (focused && focused.id !== this._focused?.id) {
             if (this._focused) {
-                opacity(this._focused.pid, DIMMED_TRANSPARENCY)
+                opacity(this._focused.pid, DIMMED_TRANSPARENCY);
             }
             opacity(focused.pid, ACTIVE_TRANSPARENCY);
             this._focused = event.container;
         } else {
-            
         }
     }
 }

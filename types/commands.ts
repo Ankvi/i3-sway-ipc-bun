@@ -1,6 +1,5 @@
-import { Root, Workspace } from "./common";
+import { Output, Workspace, Root } from "./containers";
 import { IpcEvent } from "./events";
-import { Output } from "./output";
 
 export const Command = {
     run_command: 0,
