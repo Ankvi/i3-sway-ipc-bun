@@ -39,7 +39,7 @@ export class IpcMessage {
     }
 
     getPayload(): string {
-        if (this._payload) {
+        if (this._payload?.length) {
             return this._payload.toString();
         }
         return "";

@@ -18,6 +18,7 @@ export class IpcSocket {
     private _socket: Socket;
     private _eventListeners: EventListeners;
     // private _commandResponseListeners: CommandResponseListeners;
+    private _onCloseListeners: (() => void)[] = [];
 
     private constructor(socket: Socket) {
         this._socket = socket;
@@ -72,14 +73,17 @@ export class IpcSocket {
     }
 
     private _subscribeToEvents() {
-        const eventNames = Object.keys(IpcEvent);
-        const command = create(Command.subscribe, eventNames);
+        // const eventNames = Object.keys(IpcEvent);
+        const command = create(Command.subscribe, ["window"]);
         this._sendMessage(command);
     }
 
     private _close() {
         console.log("Closing socket");
         this._socket.destroy();
+        for (const handler of this._onCloseListeners) {
+            handler();
+        }
     }
 
     private _sendMessage(message: Buffer) {
@@ -88,8 +92,9 @@ export class IpcSocket {
 
     private _processMessage() {
         const message = new IpcMessage(this._socket);
+        const payloadString = message.getPayload();
         if (message.isEvent) {
-            const payload = JSON.parse(message.getPayload());
+            const payload = JSON.parse(payloadString);
             const type = message.getType() as IpcEvent;
             const listeners = this._eventListeners[type];
             for (const listener of listeners.values()) {
@@ -97,7 +102,7 @@ export class IpcSocket {
             }
             return;
         }
-        console.log("Received command. Skipping");
+        console.log("Received command: ", payloadString);
         // const type = message.getType() as Command;
         // const listeners = this._commandResponseListeners[type];
         // for (const [key, listener] of listeners.entries()) {
@@ -125,6 +130,10 @@ export class IpcSocket {
         });
     }
 
+    onClose(handler: () => void) {
+        this._onCloseListeners.push(handler);
+    }
+
     async command<T extends Command>(
         command: T,
         payload: CommandPayloads[T],
@@ -133,12 +142,12 @@ export class IpcSocket {
 
         const commandName = getCommandName(command);
 
-        const msgArgs: string[] = [msgCommand, "-t", commandName];
+        const msgArgs: string[] = [...msgCommand, "-t", commandName];
         if (payload) {
             msgArgs.push("-m", JSON.stringify(payload));
         }
 
-        const proc = Bun.spawn([msgCommand, "-t", commandName], {
+        const proc = Bun.spawn(msgArgs, {
             stderr: "pipe",
         });
         const exitCode = await proc.exited;

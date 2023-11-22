@@ -14,9 +14,14 @@ export type ContainerType =
     | "floating_con"
     | "dockarea";
 
-export interface Container {
+export interface Nodes<TNode = never, TFloatingNode = never> {
+    nodes: TNode[];
+    floating_nodes: TFloatingNode[];
+}
+
+export interface Container<T extends ContainerType> extends Nodes {
     id: number;
-    type: ContainerType;
+    type: T;
     orientation: string;
     scratchpad_state: string;
     percent: number;
@@ -38,8 +43,6 @@ export interface Container {
     window: number;
     window_type: string;
     window_properties: WindowProperties;
-    nodes: Container[];
-    floating_nodes: Container[];
     focus: number[];
     fullscreen_mode: number;
     sticky: boolean;
@@ -47,6 +50,8 @@ export interface Container {
     swallows: unknown[];
 }
 
+export type Root = Container<"root">;
+export type Workspace = Container<"workspace">;
 
 export interface Rect {
     x: number;

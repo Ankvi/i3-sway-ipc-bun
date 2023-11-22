@@ -1,7 +1,6 @@
 import { Container } from "./common";
 
-export interface Content extends Container {
-    type: "con";
+export interface Content extends Container<"con" | "floating_con"> {
     pid: number;
     app_id: string;
     visible: boolean;
@@ -12,9 +11,4 @@ export interface Content extends Container {
         user: string;
         application: string;
     }
-}
-
-export interface FloatingContent extends Container {
-    type: "floating_con";
-    nodes: Content[];
 }

@@ -1,11 +1,8 @@
-import { Container } from "./common";
-import { Content } from "./content";
+import { Container, Nodes, Workspace } from "./common";
 
 export type Outputs = Output[];
 
-export interface Output extends Container {
-    type: "output";
-    nodes: Content[];
+export interface Output extends Omit<Container<"output">, keyof Nodes>,  Nodes<Workspace, Workspace> {
     primary: boolean;
     make: string;
     model: string;

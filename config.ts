@@ -1,8 +1,8 @@
 import { Provider } from "./types";
 
 export const COMMAND_CONFIG = {
-    i3: "i3-msg",
-    sway: "swaymsg --raw",
+    i3: ["i3-msg"],
+    sway: ["swaymsg", "--raw"],
 } as const;
 
 export function getMessageCommand() {

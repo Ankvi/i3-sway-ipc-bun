@@ -7,6 +7,14 @@ import { Provider } from "./types";
 import * as monitorSetup from "./features/monitorSetup";
 import * as windowDimming from "./features/windowDimming";
 
+declare module "bun" {
+    export interface Env {
+        IPC_PROVIDER: Provider;
+        I3SOCK: string;
+        SWAYSOCK: string;
+    }
+}
+
 interface ProgramOptions {
     provider: Provider;
 };
@@ -16,7 +24,7 @@ program
     .option("-p,--provider <provider>", "Provider to use (i3/sway)", "sway")
     .hook("preSubcommand", (command) => {
         const options = command.opts<ProgramOptions>();
-        Bun.env.IPC_PROVIDER = options.provider;
+        Bun.env.IPC_PROVIDER = options.provider ?? "sway";
     });
 
 program

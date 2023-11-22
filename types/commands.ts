@@ -1,6 +1,6 @@
+import { Root, Workspace } from "./common";
+import { IpcEvent } from "./events";
 import { Output } from "./output";
-import { Root } from "./root";
-import { Workspace } from "./workspace";
 
 export const Command = {
     run_command: 0,
@@ -46,7 +46,7 @@ type GetTreeReply = Root;
 export type CommandPayloads = {
     [Command.run_command]: unknown;
     [Command.get_workspaces]: unknown;
-    [Command.subscribe]: string[]
+    [Command.subscribe]: (keyof typeof IpcEvent)[]
     [Command.get_outputs]: unknown;
     [Command.get_tree]: unknown;
     [Command.get_marks]: unknown;
