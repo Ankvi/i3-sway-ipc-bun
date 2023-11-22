@@ -79,8 +79,6 @@ class WindowDimming {
     }
 
     private async onWindowEvent(event: WindowEvent) {
-        const tree = await this._ipcSocket.command(Command.get_tree, null);
-        // const focused = findFocused(tree);
         const focused = event.container;
         
         if (focused && focused.id !== this._focused?.id) {

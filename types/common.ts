@@ -1,3 +1,5 @@
+import { Output } from "./output";
+
 export interface WindowProperties {
     class: string;
     instance: string;
@@ -50,7 +52,7 @@ export interface Container<T extends ContainerType> extends Nodes {
     swallows: unknown[];
 }
 
-export type Root = Container<"root">;
+export type Root = Omit<Container<"root">, keyof Nodes> & Nodes<Output, Output>;
 export type Workspace = Container<"workspace">;
 
 export interface Rect {

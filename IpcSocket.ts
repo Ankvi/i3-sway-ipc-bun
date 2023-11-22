@@ -1,7 +1,12 @@
 import { Socket, connect } from "net";
 import { IpcEvent, IpcEventHandler } from "./types/events";
 import { IpcMessage, create } from "./IpcMessage";
-import { Command, CommandPayloads, CommandReplies, getCommandName } from "./types/commands";
+import {
+    Command,
+    CommandPayloads,
+    CommandReplies,
+    getCommandName,
+} from "./types/commands";
 import { randomUUID } from "crypto";
 import { Output } from "./types/output";
 import { Provider } from "./types";
@@ -44,15 +49,14 @@ export class IpcSocket {
         //     return output;
         // }, {} as CommandResponseListeners);
 
-        process.on("SIGINT", () => this._close());
-        process.on("SIGTERM", () => this._close());
+        process.on("SIGINT", () => this.close());
+        process.on("SIGTERM", () => this.close());
     }
 
-    static async getSocket(
-        provider: Provider = "sway",
-    ): Promise<IpcSocket> {
-        let socketPath = getSocketPath(); 
+    static async getSocket(): Promise<IpcSocket> {
+        let socketPath = getSocketPath();
         if (!socketPath) {
+            const provider = Bun.env.IPC_PROVIDER;
             const getSocketPathProc = Bun.spawn([provider, "--get-socketpath"]);
             await getSocketPathProc.exited;
 
@@ -74,11 +78,11 @@ export class IpcSocket {
 
     private _subscribeToEvents() {
         // const eventNames = Object.keys(IpcEvent);
-        const command = create(Command.subscribe, ["window"]);
+        const command = create(Command.subscribe, ["window", "output"]);
         this._sendMessage(command);
     }
 
-    private _close() {
+    public close() {
         console.log("Closing socket");
         this._socket.destroy();
         for (const handler of this._onCloseListeners) {
@@ -138,7 +142,7 @@ export class IpcSocket {
         command: T,
         payload: CommandPayloads[T],
     ): Promise<CommandReplies[T]> {
-        const msgCommand = getMessageCommand(); 
+        const msgCommand = getMessageCommand();
 
         const commandName = getCommandName(command);
 
@@ -160,6 +164,14 @@ export class IpcSocket {
             CommandReplies[T]
         >();
         return response;
+    }
+
+    async getTree() {
+        return await this.command(Command.get_tree, null);
+    }
+
+    async getOutputs() {
+        return await this.command(Command.get_outputs, null);
     }
 
     async outputs(): Promise<Output[]> {

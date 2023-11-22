@@ -1,5 +1,5 @@
 {
-    "name": "sway-ipc-bun",
+    "name": "i3-sway-ipc-bun",
     "module": "index.ts",
     "bin": "index.ts",
     "type": "module",

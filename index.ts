@@ -4,7 +4,7 @@ import { Command } from "commander";
 import { IpcSocket } from "./IpcSocket";
 import { Provider } from "./types";
 
-import * as monitorSetup from "./features/monitorSetup";
+import { MonitorSetup } from "./features/monitorSetup";
 import * as windowDimming from "./features/windowDimming";
 
 declare module "bun" {
@@ -29,18 +29,19 @@ program
 
 program
     .command("window-dimming")
-    .action(async ({ provider }: ProgramOptions) => {
-        const socket = await IpcSocket.getSocket(provider);
+    .action(async () => {
+        const socket = await IpcSocket.getSocket();
         windowDimming.initialize(socket);
         await socket.process();
     })
 
 program
     .command("monitor-setup")
-    .action(async ({ provider }: ProgramOptions) => {
-        const socket = await IpcSocket.getSocket(provider);
-        monitorSetup.initialize(socket);
-        await socket.process();
+    .action(async () => {
+        const socket = await IpcSocket.getSocket();
+        const monitorSetup = await MonitorSetup.initialize(socket);
+        await monitorSetup.initialize()
+        socket.close();
     })
 
 await program.parseAsync();
