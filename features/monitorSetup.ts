@@ -1,5 +1,6 @@
 import { IpcSocket } from "../IpcSocket";
 import { getMessageCommand } from "../config";
+import logger from "../logging";
 
 type OutputKey = {
     make: string;
@@ -8,17 +9,6 @@ type OutputKey = {
 };
 
 const createOutputKeyString = (key: OutputKey) => `${key.make}.${key.model}.${key.serial}`;
-
-function sortOutputKeys(a: OutputKey, b: OutputKey) {
-    const keyA = createOutputKeyString(a);
-    const keyB = createOutputKeyString(b);
-    if (keyA < keyB) {
-        return -1;
-    } else if (keyA > keyB) {
-        return 1;
-    }
-    return 0;
-}
 
 function hashOutputKeys(keys: OutputKey[]): string {
     const keyStrings = keys.map(x => createOutputKeyString(x));
@@ -51,7 +41,7 @@ export class MonitorSetup {
         private _socket: IpcSocket,
     ) {}
 
-    async initialize() {
+    async checkAndLoadSetup() {
         const outputs = await this._socket.getOutputs();
         const outputKeys = outputs
             .map<OutputKey>(({ make, model, serial }) => ({
@@ -62,24 +52,16 @@ export class MonitorSetup {
 
         const setupKey = hashOutputKeys(outputKeys);
 
-        console.log(
-            "Created output keys for current available outputs: ",
-            outputKeys,
-        );
-
         const setup = this._setups.get(setupKey);
         if (!setup) {
-            console.log("Could not find any setups");
+            logger.info("Could not find any setups");
             return;
         }
 
         for (const operation of setup) {
             const command = [...getMessageCommand(), "output", ...operation];
-            console.log("Running output operation: ", command);
             const proc = Bun.spawn(command);
             await proc.exited;
-            const response = await new Response(proc.stdout).text();
-            console.log(response);
         }
     }
 }

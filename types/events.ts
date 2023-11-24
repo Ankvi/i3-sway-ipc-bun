@@ -1,4 +1,4 @@
-import { Content } from "./containers";
+import { Container } from "./containers";
 
 export const IpcEvent = {
     workspace: 0,
@@ -13,10 +13,11 @@ export const IpcEvent = {
 
 export type IpcEvent = typeof IpcEvent[keyof typeof IpcEvent];
 
+export const IpcEventNames = Object.keys(IpcEvent);
 
 export interface WindowEvent {
   change: string
-  container: Content
+  container: Container;
 }
 
 export type IpcEventPayloads = {

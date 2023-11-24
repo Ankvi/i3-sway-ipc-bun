@@ -10,6 +10,8 @@ import {
 import { randomUUID } from "crypto";
 import { Output } from "./types/containers";
 import { getMessageCommand, getSocketPath } from "./config";
+import logger from "./logging";
+import { InvalidHeaderError, InvalidPayloadError } from "./errors";
 
 type EventListeners = {
     [K in IpcEvent]: Map<string, IpcEventHandler<K>>;
@@ -22,7 +24,7 @@ export class IpcSocket {
     private _socket: Socket;
     private _eventListeners: EventListeners;
     // private _commandResponseListeners: CommandResponseListeners;
-    private _onCloseListeners: (() => void)[] = [];
+    private _onCloseListeners: (() => void | Promise<void>)[] = [];
 
     private constructor(socket: Socket) {
         this._socket = socket;
@@ -31,7 +33,12 @@ export class IpcSocket {
             this._subscribeToEvents();
         });
         this._socket.on("readable", () => this._processMessage());
-        this._socket.on("error", console.error);
+        // this._socket.on("data", (data) => {
+        //     console.log("-------------------------");
+        //     const unicode = data.toString("binary");
+        //     console.log(unicode);
+        // })
+        this._socket.on("error", logger.error);
 
         this._eventListeners = Object.values(IpcEvent).reduce<EventListeners>(
             (output, event) => {
@@ -48,8 +55,8 @@ export class IpcSocket {
         //     return output;
         // }, {} as CommandResponseListeners);
 
-        process.on("SIGINT", () => this.close());
-        process.on("SIGTERM", () => this.close());
+        process.on("SIGINT", async () => await this.close());
+        process.on("SIGTERM", async () => await this.close());
     }
 
     static async getSocket(): Promise<IpcSocket> {
@@ -81,11 +88,11 @@ export class IpcSocket {
         this._sendMessage(command);
     }
 
-    public close() {
-        console.log("Closing socket");
+    public async close() {
+        logger.info("Closing socket");
         this._socket.destroy();
         for (const handler of this._onCloseListeners) {
-            handler();
+            await handler();
         }
     }
 
@@ -94,18 +101,35 @@ export class IpcSocket {
     }
 
     private _processMessage() {
-        const message = new IpcMessage(this._socket);
-        const payloadString = message.getPayload();
-        if (message.isEvent) {
-            const payload = JSON.parse(payloadString);
-            const type = message.getType() as IpcEvent;
-            const listeners = this._eventListeners[type];
-            for (const listener of listeners.values()) {
-                listener(payload);
+        let payloadString = "";
+        try {
+            const message = new IpcMessage(this._socket);
+            payloadString = message.payload;
+            if (!payloadString) {
+                return;
+            }
+            if (message.isEvent) {
+                const payload = JSON.parse(payloadString);
+                const type = message.type as IpcEvent;
+                const listeners = this._eventListeners[type];
+                for (const listener of listeners.values()) {
+                    listener(payload);
+                }
+                return;
+            }
+        } catch (error) {
+            if (error instanceof InvalidHeaderError) {
+                logger.warn("Could not read header from message");
+            } else if (error instanceof InvalidPayloadError) {
+                logger.warn(error.message);
+            } else if (error instanceof Error) {
+                logger.warn("Could not parse payload string");
+                logger.warn("Message:", error.message);
+                logger.warn("Actual payload:\n", payloadString);
             }
             return;
         }
-        console.log("Received command: ", payloadString);
+        logger.info("Received command:", payloadString);
         // const type = message.getType() as Command;
         // const listeners = this._commandResponseListeners[type];
         // for (const [key, listener] of listeners.entries()) {
@@ -133,7 +157,7 @@ export class IpcSocket {
         });
     }
 
-    onClose(handler: () => void) {
+    onClose(handler: () => void | Promise<void>) {
         this._onCloseListeners.push(handler);
     }
 
@@ -156,6 +180,7 @@ export class IpcSocket {
         const exitCode = await proc.exited;
         if (exitCode) {
             const error = await new Response(proc.stderr).text();
+            logger.error(error);
             throw new Error(error);
         }
 
@@ -180,7 +205,7 @@ export class IpcSocket {
     process(): Promise<void> {
         return new Promise((resolve) => {
             this._socket.once("close", () => {
-                console.log("Socket closed");
+                logger.info("Socket closed");
                 resolve();
             });
         });

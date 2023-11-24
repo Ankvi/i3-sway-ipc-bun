@@ -1,9 +1,14 @@
+type WindowRole = "browser" | "browser-window" | "pop-up";
+type WindowType = "normal";
+
 export interface WindowProperties {
     class: string;
     instance: string;
     machine: string;
     title: string;
     transient_for: unknown;
+    window_role: WindowRole;
+    window_type: WindowType;
 }
 
 export type ContainerType =
@@ -108,7 +113,7 @@ export type Content = BaseContainer<ContainerTypes.Content> & ContentProperties;
 export type FloatingContent = BaseContainer<ContainerTypes.FloatingContent> &
     ContentProperties;
 
-export const isContent = (x: Container): x is Content | FloatingContent =>
+export const isContent = (x: Container): x is (Content | FloatingContent) =>
     x.type === ContainerTypes.Content ||
     x.type === ContainerTypes.FloatingContent;
 

@@ -1,10 +1,10 @@
+import { unlink } from "node:fs/promises";
 import { IpcSocket } from "../IpcSocket";
+import logger from "../logging";
 import { opacity } from "../messageCommands";
 import { Command } from "../types/commands";
 import {
     Container,
-    ContainerType,
-    ContainerTypes,
     Content,
     FloatingContent,
     Root,
@@ -40,17 +40,28 @@ export function flatten(root: Root): Container[] {
     return output;
 }
 
+const WINDOW_DIMMING_LOCK_FILE = `${import.meta.dir}/.lock`;
+const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
+logger.info("Using lock file:", WINDOW_DIMMING_LOCK_FILE);
+
 class WindowDimming {
     private static _instance?: WindowDimming;
 
     static async start(ipcSocket: IpcSocket): Promise<WindowDimming> {
         if (!WindowDimming._instance) {
+            if (await lockFile.exists()) {
+                const pid = await lockFile.text();
+                logger.warn(
+                    `Found existing window dimming script with pid: '${pid}'. Killing it and restarting`,
+                );
+                await Bun.spawn(["kill", "-TERM", pid]).exited;
+            }
             WindowDimming._instance = new WindowDimming(ipcSocket);
         }
         return WindowDimming._instance;
     }
 
-    private _focused?: Content;
+    private _focused?: Content | FloatingContent;
 
     private constructor(private _ipcSocket: IpcSocket) {
         this._ipcSocket.on(IpcEvent.window, (event) =>
@@ -59,28 +70,33 @@ class WindowDimming {
 
         this.initialize();
 
-        this._ipcSocket.onClose(() => this.shutdown());
+        this._ipcSocket.onClose(async () => await this.shutdown());
+    }
+
+    private async getContent(): Promise<(Content | FloatingContent)[]> {
+        const tree = await this._ipcSocket.command(Command.get_tree, null);
+        const flattened = flatten(tree);
+        const content = flattened.filter<Content | FloatingContent>(isContent);
+        return content;
     }
 
     private async shutdown() {
-        console.log("Resetting all transparencies");
-        const tree = await this._ipcSocket.command(Command.get_tree, null);
-        const flattened = flatten(tree);
-        const content = flattened.filter(
-            (x) => x.type === "con" || x.type === "floating_con",
-        ) as Content[];
+        logger.info("Resetting all transparencies");
+        const content = await this.getContent();
         for (const con of content) {
-            opacity(con.pid, ACTIVE_TRANSPARENCY);
+            opacity(con, ACTIVE_TRANSPARENCY);
+        }
+        if (await lockFile.exists()) {
+            await unlink(WINDOW_DIMMING_LOCK_FILE);
         }
     }
 
     private async initialize() {
-        const tree = await this._ipcSocket.command(Command.get_tree, null);
-        const flattened = flatten(tree);
-        const content = flattened.filter<Content | FloatingContent>(isContent);
+        await Bun.write(lockFile, process.pid.toString());
+        const content = await this.getContent();
         for (const con of content) {
             opacity(
-                con.pid,
+                con,
                 con.focused ? ACTIVE_TRANSPARENCY : DIMMED_TRANSPARENCY,
             );
         }
@@ -89,12 +105,20 @@ class WindowDimming {
     private async onWindowEvent(event: WindowEvent) {
         const focused = event.container;
 
+        if (!isContent(focused)) {
+            logger.warn(
+                "onWindowEvent container was not 'con' or 'floating_con'. Actual value:",
+                JSON.stringify(focused),
+            );
+            return;
+        }
+
         if (focused && focused.id !== this._focused?.id) {
             if (this._focused) {
-                opacity(this._focused.pid, DIMMED_TRANSPARENCY);
+                opacity(this._focused, DIMMED_TRANSPARENCY);
             }
-            opacity(focused.pid, ACTIVE_TRANSPARENCY);
-            this._focused = event.container;
+            opacity(focused, ACTIVE_TRANSPARENCY);
+            this._focused = focused;
         } else {
         }
     }
