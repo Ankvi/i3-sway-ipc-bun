@@ -104,16 +104,11 @@ export class IpcSocket {
         let payloadString = "";
         try {
             const message = new IpcMessage(this._socket);
-            payloadString = message.payload;
-            if (!payloadString) {
-                return;
-            }
             if (message.isEvent) {
-                const payload = JSON.parse(payloadString);
                 const type = message.type as IpcEvent;
                 const listeners = this._eventListeners[type];
                 for (const listener of listeners.values()) {
-                    listener(payload);
+                    listener(message.payload);
                 }
                 return;
             }

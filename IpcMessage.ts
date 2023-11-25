@@ -72,15 +72,20 @@ export class IpcMessage {
         const payloadEnd = payloadLength + HEADER_LENGTH;
         this._payload = buffer.subarray(HEADER_LENGTH, payloadEnd);
 
-        if (payloadEnd !== buffer.length) {
-            throw new Error(`Mismatch in buffer lengths. Buffer: ${buffer.length}. Header+Payload: ${HEADER_LENGTH + payloadLength}. Payload:\n${buffer.subarray(HEADER_LENGTH, readableLength).toString("utf-8")}`);
+        if (payloadEnd !== readableLength) {
+            logger.warn(`Header+payload length (${payloadEnd}) does not match the readable length in the buffer ${readableLength}.`)
+        //     throw new Error(`Mismatch in buffer lengths. Buffer: ${buffer.length}. Header+Payload: ${HEADER_LENGTH + payloadLength}. Payload:\n${buffer.subarray(HEADER_LENGTH, readableLength).toString("utf-8")}`);
         }
 
         if (!this._payload) throw new InvalidPayloadError("No payload found");
 
     }
 
-    public get payload(): string {
-        return this._payload.toString("utf-8");
+    public get payload() {
+        try {
+            return JSON.parse(this._payload.toString("utf-8"));
+        } catch (error) {
+            throw new InvalidPayloadError("Unable to parse json")
+        }
     }
 }
