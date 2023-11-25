@@ -10,7 +10,6 @@ import {
     Root,
     isContent,
 } from "../types/containers";
-import { IpcEvent, WindowEvent } from "../types/events";
 
 const DIMMED_TRANSPARENCY = 0.8;
 const ACTIVE_TRANSPARENCY = 1.0;
@@ -44,7 +43,7 @@ const WINDOW_DIMMING_LOCK_FILE = `${import.meta.dir}/.lock`;
 const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
 logger.info("Using lock file:", WINDOW_DIMMING_LOCK_FILE);
 
-class WindowDimming {
+export class WindowDimming {
     private static _instance?: WindowDimming;
 
     static async start(ipcSocket: IpcSocket): Promise<WindowDimming> {
@@ -64,13 +63,13 @@ class WindowDimming {
     private _focused?: Content | FloatingContent;
 
     private constructor(private _ipcSocket: IpcSocket) {
-        this._ipcSocket.on(IpcEvent.window, (event) =>
+        this._ipcSocket.on("window-focus-changed", (event) =>
             this.onWindowEvent(event),
         );
 
         this.initialize();
 
-        this._ipcSocket.onClose(async () => await this.shutdown());
+        this._ipcSocket.on("close", () => this.shutdown());
     }
 
     private async getContent(): Promise<(Content | FloatingContent)[]> {
@@ -92,6 +91,7 @@ class WindowDimming {
     }
 
     private async initialize() {
+        logger.info("Initializing window dimming");
         await Bun.write(lockFile, process.pid.toString());
         const content = await this.getContent();
         for (const con of content) {
@@ -102,8 +102,8 @@ class WindowDimming {
         }
     }
 
-    private async onWindowEvent(event: WindowEvent) {
-        const focused = event.container;
+    private async onWindowEvent(container: Container) {
+        const focused = container;
 
         if (!isContent(focused)) {
             logger.warn(
@@ -122,8 +122,4 @@ class WindowDimming {
         } else {
         }
     }
-}
-
-export function initialize(ipcSocket: IpcSocket) {
-    WindowDimming.start(ipcSocket);
 }

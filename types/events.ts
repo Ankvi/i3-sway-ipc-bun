@@ -31,4 +31,17 @@ export type IpcEventPayloads = {
     [IpcEvent.tick]: Record<string, unknown>;
 }
 
-export type IpcEventHandler<T extends IpcEvent> = (payload: IpcEventPayloads[T]) => (void | Promise<void>);
+export const SocketEvent = {
+    WindowFocusChanged: "window-focus-changed",
+    // WindowMoved = "window-moved"
+    Close: "close"
+} as const;
+
+export type SocketEvent = typeof SocketEvent[keyof typeof SocketEvent];
+
+export type SocketEvents = {
+    [SocketEvent.WindowFocusChanged]: [Container];
+    [SocketEvent.Close]: [];
+}
+
+export type SocketEventHandler<T extends SocketEvent> = (payload: SocketEvents[T]) => Promise<void> | void;

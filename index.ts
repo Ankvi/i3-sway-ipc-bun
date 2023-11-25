@@ -5,7 +5,7 @@ import { IpcSocket } from "./IpcSocket";
 import { Provider } from "./types";
 
 import { MonitorSetup } from "./features/monitorSetup";
-import * as windowDimming from "./features/windowDimming";
+import { WindowDimming } from "./features/windowDimming";
 import logger from "./logging";
 
 declare module "bun" {
@@ -31,7 +31,7 @@ try {
 
     program.command("window-dimming").action(async () => {
         const socket = await IpcSocket.getSocket();
-        windowDimming.initialize(socket);
+        await WindowDimming.start(socket);
         await socket.process();
     });
 

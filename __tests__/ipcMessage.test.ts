@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { HEADER_LENGTH, create, decodeHeader } from "../IpcMessage"
+import { HEADER_LENGTH, create, decodeHeader } from "../ipcMessage"
 import { Command, CommandPayloads } from "../types/commands"
 
 describe("IpcMessage tests", () => {
