@@ -45,7 +45,7 @@ type GetTreeReply = Root;
 export type CommandPayloads = {
     [Command.run_command]: [];
     [Command.get_workspaces]: [];
-    [Command.subscribe]: (keyof typeof IpcEvent)[]
+    [Command.subscribe]: (keyof typeof IpcEvent)[];
     [Command.get_outputs]: [];
     [Command.get_tree]: [];
     [Command.get_marks]: [];

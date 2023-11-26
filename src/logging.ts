@@ -1,4 +1,4 @@
-import pkg from "./package.json" with { type: "json" };
+import pkg from "../package.json" with { type: "json" };
 import { appendFile, mkdir } from "node:fs/promises";
 
 const PID = process.pid;

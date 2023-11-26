@@ -35,7 +35,11 @@ export async function command<T extends Command>(
 
     const msgArgs: string[] = [...msgCommand, "-t", commandName];
     if (payload) {
-        msgArgs.push("-m", JSON.stringify(payload));
+        msgArgs.push(JSON.stringify(payload));
+    }
+
+    if (command === Command.subscribe) {
+        msgArgs.push("-m");
     }
 
     const proc = Bun.spawn(msgArgs, {

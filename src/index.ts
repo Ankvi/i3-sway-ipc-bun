@@ -19,15 +19,24 @@ declare module "bun" {
 
 interface ProgramOptions {
     provider: Provider;
+    verbose: Severity | boolean;
 }
 
 try {
     const program = new Command();
     program
         .option("-p,--provider <provider>", "Provider to use (i3/sway)", "sway")
+        .option("-v, --verbose [severity]", "Set verbosity level", (value, previous) => {
+            if (!value) {
+                return Severity.Warning;
+            }
+
+            console.log(previous);
+        })
         .hook("preSubcommand", (command) => {
             const options = command.opts<ProgramOptions>();
             Bun.env.IPC_PROVIDER = options.provider ?? "sway";
+            console.log("Verbosity", options.verbose);
         });
 
     program.command("window-dimming").action(async () => {
