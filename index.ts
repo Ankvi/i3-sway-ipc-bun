@@ -4,15 +4,16 @@ import { Command } from "commander";
 import { IpcSocket } from "./IpcSocket";
 import { Provider } from "./types";
 
-import { MonitorSetup } from "./features/monitorSetup";
-import { WindowDimming } from "./features/windowDimming";
-import logger from "./logging";
+import { MonitorSetup, MonitorSetupArgs } from "./features/monitorSetup";
+import { WindowDimming } from "./features/windowDimming";
+import logger, { Severity } from "./logging";
 
 declare module "bun" {
     export interface Env {
         IPC_PROVIDER: Provider;
         I3SOCK: string;
         SWAYSOCK: string;
+        MINIMUM_SEVERITY: Severity;
     }
 }
 
@@ -35,12 +36,13 @@ try {
         await socket.process();
     });
 
-    program.command("monitor-setup").action(async () => {
-        const socket = await IpcSocket.getSocket();
-        const monitorSetup = await MonitorSetup.initialize(socket);
-        await monitorSetup.checkAndLoadSetup();
-        socket.close();
-    });
+    program
+        .command("monitor-setup")
+        .option("--setup-file <path>", "Optional path to a monitor setup file")
+        .action(async (args: MonitorSetupArgs) => {
+            const monitorSetup = await MonitorSetup.initialize(args);
+            await monitorSetup.checkAndLoadSetup();
+        });
 
     await program.parseAsync();
 } catch (error) {

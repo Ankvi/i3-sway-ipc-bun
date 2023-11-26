@@ -8,28 +8,23 @@ const LOG_FILE_LOCATION = `${LOG_FOLDER}/${pkg.name}.log`;
 const LOG_FILE = Bun.file(LOG_FILE_LOCATION);
 
 export const Severity = {
-    Error: "error",
-    Warning: "warn",
+    Debug: "debug",
     Information: "info",
-    Debug: "debug"
+    Warning: "warn",
+    Error: "error",
 } as const;
 
 export type Severity = typeof Severity[keyof typeof Severity];
 
-function getTimestamp(): [string, string] {
-    const now = new Date();
-    const date = now.toLocaleDateString("nb-NO");
-    const time = now.toLocaleTimeString("nb-NO");
-    return [date, time];
-}
+const severityIndices = [Severity.Debug, Severity.Information, Severity.Warning, Severity.Error] as const;
 
-export async function log(severity: Severity, ...args: string[]) {
-    const [date, time] = getTimestamp();
-
-    const payload = args.join(" ");
-    const parts = [severity, PID, date, time, payload];
-    const message = parts.join("\t");
-
+function consoleLog(severity: Severity, payload: string) {
+    const minimumSeverityIndex = severityIndices.findIndex(x => x === (Bun.env.MINIMUM_SEVERITY ?? Severity.Warning));
+    const severityIndex = severityIndices.findIndex(x => x === severity);
+    if (minimumSeverityIndex > severityIndex) {
+        return;
+    }
+    
     switch (severity) {
         case "error":
             console.error(payload);
@@ -47,6 +42,23 @@ export async function log(severity: Severity, ...args: string[]) {
             console.log(payload);
             break;
     }
+}
+
+function getTimestamp(): [string, string] {
+    const now = new Date();
+    const date = now.toLocaleDateString("nb-NO");
+    const time = now.toLocaleTimeString("nb-NO");
+    return [date, time];
+}
+
+export async function log(severity: Severity, ...args: string[]) {
+    const [date, time] = getTimestamp();
+
+    const payload = args.join(" ");
+    const parts = [severity, PID, date, time, payload];
+    const message = parts.join("\t");
+
+    consoleLog(severity, payload);
 
     if (await LOG_FILE.exists()) {
         await appendFile(LOG_FILE_LOCATION, `${message}\n`);

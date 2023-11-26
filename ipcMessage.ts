@@ -7,6 +7,12 @@ const MAGIC = Buffer.from("i3-ipc");
 const MAGIC_LENGTH = MAGIC.length;
 export const HEADER_LENGTH = MAGIC_LENGTH + 8;
 
+type MessageHeader = {
+    type: IpcEvent;
+    isEvent: boolean;
+    payloadLength: number;
+}
+
 export function create<T extends keyof CommandPayloads>(
     type: T,
     payload: CommandPayloads[T],
@@ -22,7 +28,7 @@ export function create<T extends keyof CommandPayloads>(
     return message;
 }
 
-export function decodeHeader(buffer: Buffer) {
+export function decodeHeader(buffer: Buffer): MessageHeader {
     const magic = buffer.subarray(0, MAGIC_LENGTH);
     if (!magic.equals(MAGIC)) {
         throw new InvalidHeaderError(
@@ -33,7 +39,7 @@ export function decodeHeader(buffer: Buffer) {
     const type = buffer.readUInt16LE(MAGIC_LENGTH + 4) as IpcEvent;
     const isEvent = (buffer.readUInt32LE(MAGIC_LENGTH + 4) & (1 << 32)) > 0;
 
-    logger.info(
+    logger.debug(
         `Got ${isEvent ? "event" : "command reply"}: "${
             isEvent ? IpcEventNames[type] : getCommandName(type as Command)
         }" with payload length: ${payloadLength}`,

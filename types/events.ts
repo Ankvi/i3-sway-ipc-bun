@@ -36,7 +36,6 @@ export const SocketEvent = {
     WindowMoved: "window-moved",
     Close: "close",
     End: "end",
-    EndAck: "end-ack"
 } as const;
 
 export type SocketEvent = typeof SocketEvent[keyof typeof SocketEvent];
@@ -46,7 +45,6 @@ export type SocketEvents = {
     [SocketEvent.WindowMoved]: [Container];
     [SocketEvent.Close]: [];
     [SocketEvent.End]: [];
-    [SocketEvent.EndAck]: [];
 }
 
 export type SocketEventHandler<T extends SocketEvent> = (payload: SocketEvents[T]) => Promise<void> | void;

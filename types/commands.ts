@@ -43,19 +43,19 @@ type GetWorkspacesReply = Workspace[];
 type GetTreeReply = Root;
 
 export type CommandPayloads = {
-    [Command.run_command]: unknown;
-    [Command.get_workspaces]: unknown;
+    [Command.run_command]: [];
+    [Command.get_workspaces]: [];
     [Command.subscribe]: (keyof typeof IpcEvent)[]
-    [Command.get_outputs]: unknown;
-    [Command.get_tree]: unknown;
-    [Command.get_marks]: unknown;
-    [Command.get_bar_config]: unknown;
-    [Command.get_version]: unknown;
-    [Command.get_binding_modes]: unknown;
-    [Command.get_config]: unknown;
-    [Command.send_tick]: unknown;
-    [Command.sync]: unknown;
-    [Command.get_binding_state]: unknown;
+    [Command.get_outputs]: [];
+    [Command.get_tree]: [];
+    [Command.get_marks]: [];
+    [Command.get_bar_config]: [];
+    [Command.get_version]: [];
+    [Command.get_binding_modes]: [];
+    [Command.get_config]: [];
+    [Command.send_tick]: [];
+    [Command.sync]: [];
+    [Command.get_binding_state]: [];
 };
 
 export type CommandReplies = {

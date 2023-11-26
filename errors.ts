@@ -1,7 +1,1 @@
-export class InvalidHeaderError extends Error {
-
-}
-
-export class InvalidPayloadError extends Error {
-
-}
+export class InvalidHeaderError extends Error {}

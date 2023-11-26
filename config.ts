@@ -1,4 +1,8 @@
+import pkg from "./package.json" with { type: "json" };
+
 import { Provider } from "./types";
+
+export const CONFIG_FOLDER = `${Bun.env.HOME}/.config/${pkg.name}`;
 
 export const COMMAND_CONFIG = {
     i3: ["i3-msg"],

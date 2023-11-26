@@ -1,7 +1,7 @@
-import { unlink } from "node:fs/promises";
+import { unlinkSync, existsSync } from "node:fs";
 import { IpcSocket } from "../IpcSocket";
 import logger from "../logging";
-import { opacity } from "../messageCommands";
+import { commandSync, opacity } from "../messageCommands";
 import { Command } from "../types/commands";
 import {
     Container,
@@ -10,7 +10,6 @@ import {
     Root,
     isContent,
 } from "../types/containers";
-import { SocketEvent } from "../types/events";
 
 const DIMMED_TRANSPARENCY = 0.8;
 const ACTIVE_TRANSPARENCY = 1.0;
@@ -69,29 +68,27 @@ export class WindowDimming {
 
         this.initialize();
 
-        this._ipcSocket.on("end", async () => await this.shutdown());
+        this._ipcSocket.on("end", () => this.shutdown());
     }
 
-    private async getContent(): Promise<(Content | FloatingContent)[]> {
-        const tree = await this._ipcSocket.command(Command.get_tree, null);
+    private getContent(): (Content | FloatingContent)[] {
+        const tree = commandSync(Command.get_tree);
         const flattened = flatten(tree);
         const content = flattened.filter<Content | FloatingContent>(isContent);
         return content;
     }
 
-    private async shutdown() {
+    private shutdown() {
         logger.info("Resetting all transparencies");
-        const content = await this.getContent();
+        const content = this.getContent();
         for (const con of content) {
             opacity(con, ACTIVE_TRANSPARENCY);
         }
-        const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
-        if (await lockFile.exists()) {
-            logger.info("Deleting window dimming lock file");
-            await unlink(WINDOW_DIMMING_LOCK_FILE);
-        }
 
-        this._ipcSocket.emit(SocketEvent.EndAck);
+        if (existsSync(WINDOW_DIMMING_LOCK_FILE)) {
+            logger.info("Deleting window dimming lock file");
+            unlinkSync(WINDOW_DIMMING_LOCK_FILE);
+        }
     }
 
     private async initialize() {
@@ -99,7 +96,7 @@ export class WindowDimming {
         logger.info("Initializing window dimming with PID:", pid);
         const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
         await Bun.write(lockFile, pid);
-        const content = await this.getContent();
+        const content = this.getContent();
         for (const con of content) {
             opacity(
                 con,

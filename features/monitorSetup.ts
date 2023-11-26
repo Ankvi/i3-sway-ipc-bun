@@ -1,6 +1,7 @@
-import { IpcSocket } from "../IpcSocket";
-import { getMessageCommand } from "../config";
+import { CONFIG_FOLDER, getMessageCommand } from "../config";
 import logger from "../logging";
+import { command } from "../messageCommands";
+import { Command } from "../types/commands";
 
 type OutputKey = {
     make: string;
@@ -23,26 +24,36 @@ type MonitorSetupFileContent = {
 }[];
 type MonitorSetupConfig = Map<string, string[][]>;
 
-export class MonitorSetup {
-    public static async initialize(ipcSocket: IpcSocket) {
-        const loadedSetups = await Bun.file(
-            `${import.meta.dir}/known-setups.json`,
-        ).json<MonitorSetupFileContent>();
+export interface MonitorSetupArgs {
+    setupFile?: string;
+}
 
+const DEFAULT_SETUP_FILE = `${CONFIG_FOLDER}/known-monitor-setups.json`;
+
+export class MonitorSetup {
+    public static async initialize({ setupFile }: MonitorSetupArgs) {
         const monitorSetups: MonitorSetupConfig = new Map();
-        for (const setup of loadedSetups) {
-            monitorSetups.set(hashOutputKeys(setup.outputs), setup.commands);
+        try {
+            const loadedSetups = await Bun.file(
+                setupFile || DEFAULT_SETUP_FILE
+            ).json<MonitorSetupFileContent>();
+
+            for (const setup of loadedSetups) {
+                monitorSetups.set(hashOutputKeys(setup.outputs), setup.commands);
+            }
+        } catch {
+            logger.info("Could not load setup file");
         }
-        return new MonitorSetup(monitorSetups, ipcSocket);
+
+        return new MonitorSetup(monitorSetups);
     }
 
     private constructor(
         private _setups: MonitorSetupConfig,
-        private _socket: IpcSocket,
     ) {}
 
     async checkAndLoadSetup() {
-        const outputs = await this._socket.getOutputs();
+        const outputs = await command(Command.get_outputs);
         const outputKeys = outputs
             .map<OutputKey>(({ make, model, serial }) => ({
                 make,
@@ -54,7 +65,7 @@ export class MonitorSetup {
 
         const setup = this._setups.get(setupKey);
         if (!setup) {
-            logger.info("Could not find any setups");
+            logger.debug("Could not find any setups");
             return;
         }
 
