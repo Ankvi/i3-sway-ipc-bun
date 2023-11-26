@@ -17,7 +17,7 @@ bun install
 To run:
 
 ```bash
-bun run index.ts --help
+bun run src/index.ts --help
 ```
 
 You can also run the script through the bun binary folder by utilizing `bun link`.
