@@ -1,9 +1,10 @@
 import pkg from "./package.json" with { type: "json" };
-import { appendFile } from "node:fs/promises";
+import { appendFile, mkdir } from "node:fs/promises";
 
 const PID = process.pid;
 
-const LOG_FILE_LOCATION = `${Bun.env.HOME}/.local/logs/${pkg.name}.log`;
+const LOG_FOLDER = `${Bun.env.HOME}/.local/logs`;
+const LOG_FILE_LOCATION = `${LOG_FOLDER}/${pkg.name}.log`;
 const LOG_FILE = Bun.file(LOG_FILE_LOCATION);
 
 export const Severity = {
@@ -47,7 +48,13 @@ export async function log(severity: Severity, ...args: string[]) {
             break;
     }
 
-    await appendFile(LOG_FILE_LOCATION, `${message}\n`);
+    if (await LOG_FILE.exists()) {
+        await appendFile(LOG_FILE_LOCATION, `${message}\n`);
+        return;
+    }
+
+    await mkdir(LOG_FOLDER);
+    await Bun.write(LOG_FILE, `${message}\n`);
 }
 
 export async function info(...args: string[]) {

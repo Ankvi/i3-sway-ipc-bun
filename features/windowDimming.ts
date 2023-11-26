@@ -10,6 +10,7 @@ import {
     Root,
     isContent,
 } from "../types/containers";
+import { SocketEvent } from "../types/events";
 
 const DIMMED_TRANSPARENCY = 0.8;
 const ACTIVE_TRANSPARENCY = 1.0;
@@ -40,14 +41,13 @@ export function flatten(root: Root): Container[] {
 }
 
 const WINDOW_DIMMING_LOCK_FILE = `${import.meta.dir}/.lock`;
-const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
-logger.info("Using lock file:", WINDOW_DIMMING_LOCK_FILE);
 
 export class WindowDimming {
     private static _instance?: WindowDimming;
 
     static async start(ipcSocket: IpcSocket): Promise<WindowDimming> {
         if (!WindowDimming._instance) {
+            const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
             if (await lockFile.exists()) {
                 const pid = await lockFile.text();
                 logger.warn(
@@ -69,7 +69,7 @@ export class WindowDimming {
 
         this.initialize();
 
-        this._ipcSocket.on("close", () => this.shutdown());
+        this._ipcSocket.on("end", async () => await this.shutdown());
     }
 
     private async getContent(): Promise<(Content | FloatingContent)[]> {
@@ -85,14 +85,20 @@ export class WindowDimming {
         for (const con of content) {
             opacity(con, ACTIVE_TRANSPARENCY);
         }
+        const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
         if (await lockFile.exists()) {
+            logger.info("Deleting window dimming lock file");
             await unlink(WINDOW_DIMMING_LOCK_FILE);
         }
+
+        this._ipcSocket.emit(SocketEvent.EndAck);
     }
 
     private async initialize() {
-        logger.info("Initializing window dimming");
-        await Bun.write(lockFile, process.pid.toString());
+        const pid = process.pid.toString();
+        logger.info("Initializing window dimming with PID:", pid);
+        const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
+        await Bun.write(lockFile, pid);
         const content = await this.getContent();
         for (const con of content) {
             opacity(

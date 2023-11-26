@@ -34,7 +34,7 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
 
         process.on("SIGINT", async () => await this.close());
         process.on("SIGTERM", async () => await this.close());
-        process.on("SIGKILL", () => this.close());
+        process.on("SIGKILL", async () => await this.close());
     }
 
     static async getSocket(): Promise<IpcSocket> {
@@ -61,14 +61,51 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
     }
 
     private _subscribeToEvents() {
-        // const eventNames = Object.keys(IpcEvent);
         const command = create(Command.subscribe, ["window"]);
         this._sendMessage(command);
     }
 
-    public async close() {
+    public async close(): Promise<void> {
         logger.info("Closing socket");
+
+        const ipcSocketClosed = new Promise<void>((resolve) => {
+            this._socket.once("close", () => {
+                logger.info("IPC Socket closed");
+                resolve();
+            });
+        });
+
         this._socket.destroy();
+
+        const endListenersConfirmed = new Promise<void>((resolve) => {
+            const endListeners = this.listenerCount("end");
+            if (!endListeners) {
+                resolve();
+                return;
+            }
+
+            logger.info(`Waiting for ${endListeners} to send end-ack`);
+
+            const endTimeout = setTimeout(() => {
+                logger.info("end-ack timed out. Force exiting.");
+                resolve();
+            }, 5000);
+            let acksReceived = 0;
+            this.on("end-ack", () => {
+                acksReceived++;
+                if (endListeners === acksReceived) {
+                    logger.info("Received all end-acks");
+                    clearTimeout(endTimeout);
+                    resolve();
+                }
+            });
+        });
+        logger.info("Emitting end event");
+        this.emit(SocketEvent.End);
+
+        await Promise.all([ipcSocketClosed, endListenersConfirmed]);
+
+        logger.info("Emitting close event");
         this.emit(SocketEvent.Close);
     }
 
@@ -78,20 +115,19 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
 
     private _processMessage() {
         const readableLength = this._socket.readableLength;
+        const message: Buffer = this._socket.read();
         let bytesRead = 0;
         while (bytesRead < readableLength) {
-
             try {
-                // const buffer: Buffer = this._socket.read(readableLength);
-                //
-                // const header = buffer.subarray(0, HEADER_LENGTH);
-                const header = this._socket.read(HEADER_LENGTH);
+                const header = message.subarray(
+                    bytesRead,
+                    bytesRead + HEADER_LENGTH,
+                );
                 bytesRead += HEADER_LENGTH;
                 if (!header) {
                     logger.warn("Message has no header");
                     continue;
                 }
-                logger.info("Received message header:", header.toString("hex"));
 
                 const decodedHeader = decodeHeader(header);
                 const isEvent = decodedHeader.isEvent;
@@ -99,10 +135,10 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
                 const type = decodedHeader.type;
                 const payloadLength = decodedHeader.payloadLength;
 
-                const payloadEnd = payloadLength + HEADER_LENGTH;
-                // const payload = buffer.subarray(HEADER_LENGTH, payloadEnd);
-                
-                const payload: Buffer = this._socket.read(payloadLength);
+                const payload = message.subarray(
+                    bytesRead,
+                    bytesRead + payloadLength,
+                );
                 bytesRead += payloadLength;
 
                 const payloadString = payload.toString("utf-8");
@@ -112,28 +148,21 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
                     continue;
                 }
 
-                if (payloadEnd !== readableLength) {
-                    logger.warn(
-                        `Header+payload length (${payloadEnd}) does not match the readable length in the buffer ${readableLength}.`,
-                    );
-                }
-                
                 try {
                     switch (type) {
                         case IpcEvent.window: {
-                            const event: WindowEvent = JSON.parse(payloadString);
-                            this.emit(SocketEvent.WindowFocusChanged, event.container);
+                            const event: WindowEvent =
+                                JSON.parse(payloadString);
+                            this._handleWindowEvent(event);
+                            break;
                         }
-                    } 
+                    }
                 } catch (error) {
-                    logger.error("Emitting error failed:", (error as Error).message);
+                    logger.error(
+                        "Emitting error failed:",
+                        (error as Error).message,
+                    );
                 }
-
-                    // const listeners = this._eventListeners[type];
-                    // for (const listener of listeners.values()) {
-                    //     listener(payload);
-                    // }
-                    // return;
             } catch (error) {
                 if (error instanceof InvalidHeaderError) {
                     logger.warn("Could not read header from message");
@@ -142,38 +171,37 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
                 } else if (error instanceof Error) {
                     logger.warn("Could not parse payload string");
                     logger.warn("Message:", error.message);
-                    // logger.warn("Actual payload:\n", payloadString);
                 }
                 continue;
             } finally {
                 console.log("---------------------");
                 console.log("Processed event");
-                console.log(`bytesRead: ${bytesRead}, socket.bytesRead: ${this._socket.bytesRead}, socket.readableLength: ${readableLength}`);
+                console.log(
+                    `bytesRead: ${bytesRead}, socket.readableLength: ${readableLength}`,
+                );
             }
         }
     }
 
-    // on<T extends IpcEvent>(event: T, handler: IpcEventHandler<T>): string {
-    //     const guid = randomUUID();
-    //     this._eventListeners[event].set(guid, handler);
-    //     return guid;
-    // }
-
-    // delete<T extends IpcEvent>(event: T, guid: string) {
-    //     this._eventListeners[event].delete(guid);
-    // }
-
-    // once<T extends IpcEvent>(event: T, handler: IpcEventHandler<T>) {
-    //     const guid = randomUUID();
-    //     this._eventListeners[event].set(guid, (payload) => {
-    //         handler(payload);
-    //         this._eventListeners[event].delete(guid);
-    //     });
-    // }
-
-    // onClose(handler: () => void | Promise<void>) {
-    //     this._onCloseListeners.push(handler);
-    // }
+    private _handleWindowEvent(event: WindowEvent) {
+        logger.info(`Got window event with change: "${event.change}"`);
+        switch (event.change) {
+            case "focus": {
+                this.emit("window-focus-changed", event.container);
+                return;
+            }
+            case "move": {
+                this.emit("window-moved", event.container);
+                return;
+            }
+            default: {
+                logger.warn(
+                    "Received unknown window event change:",
+                    event.change,
+                );
+            }
+        }
+    }
 
     async command<T extends Command>(
         command: T,
@@ -218,8 +246,7 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
 
     process(): Promise<void> {
         return new Promise((resolve) => {
-            this._socket.once("close", () => {
-                logger.info("Socket closed");
+            this.once("close", () => {
                 resolve();
             });
         });

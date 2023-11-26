@@ -33,15 +33,20 @@ export type IpcEventPayloads = {
 
 export const SocketEvent = {
     WindowFocusChanged: "window-focus-changed",
-    // WindowMoved = "window-moved"
-    Close: "close"
+    WindowMoved: "window-moved",
+    Close: "close",
+    End: "end",
+    EndAck: "end-ack"
 } as const;
 
 export type SocketEvent = typeof SocketEvent[keyof typeof SocketEvent];
 
 export type SocketEvents = {
     [SocketEvent.WindowFocusChanged]: [Container];
+    [SocketEvent.WindowMoved]: [Container];
     [SocketEvent.Close]: [];
+    [SocketEvent.End]: [];
+    [SocketEvent.EndAck]: [];
 }
 
 export type SocketEventHandler<T extends SocketEvent> = (payload: SocketEvents[T]) => Promise<void> | void;
