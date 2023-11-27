@@ -6,7 +6,7 @@ import { Provider } from "./types";
 
 import { MonitorSetup, MonitorSetupArgs } from "./features/monitorSetup";
 import { WindowDimming } from "./features/windowDimming";
-import logger, { Severity } from "./logging";
+import logger, { Severity, setMinimumSeverity, severities } from "./logging";
 
 declare module "bun" {
     export interface Env {
@@ -26,24 +26,25 @@ try {
     const program = new Command();
     program
         .option("-p,--provider <provider>", "Provider to use (i3/sway)", "sway")
-        .option("-v, --verbose [severity]", "Set verbosity level", (value, previous) => {
-            if (!value) {
-                return Severity.Warning;
+        .option("-v, --verbose [severity]", "Set verbosity level", (value) => {
+            const found = severities.find(x => x === value);
+            if (found) {
+                return found;
             }
-
-            console.log(previous);
+            logger.warn(`Could not find supported verbosity level "${value}". Setting default level ${Severity.Warning}`);
+            return Severity.Warning;
         })
         .hook("preSubcommand", (command) => {
             const options = command.opts<ProgramOptions>();
             Bun.env.IPC_PROVIDER = options.provider ?? "sway";
-            console.log("Verbosity", options.verbose);
+            setMinimumSeverity(options.verbose);
         });
 
-    program.command("window-dimming").action(async () => {
-        const socket = await IpcSocket.getSocket();
-        await WindowDimming.start(socket);
-        await socket.process();
-    });
+    program
+        .command("window-dimming")
+        .action(async () => {
+            await WindowDimming.start();
+        });
 
     program
         .command("monitor-setup")

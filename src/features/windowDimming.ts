@@ -44,7 +44,11 @@ const WINDOW_DIMMING_LOCK_FILE = `${import.meta.dir}/.lock`;
 export class WindowDimming {
     private static _instance?: WindowDimming;
 
-    static async start(ipcSocket: IpcSocket): Promise<WindowDimming> {
+    static async start() {
+        if (Bun.env.IPC_PROVIDER !== "sway") {
+            throw new Error("Window dimming is only supported in Sway. For window dimming in i3, check out picom or compton");
+        }
+        const ipcSocket = await IpcSocket.getSocket();
         if (!WindowDimming._instance) {
             const lockFile = Bun.file(WINDOW_DIMMING_LOCK_FILE);
             if (await lockFile.exists()) {
@@ -56,7 +60,7 @@ export class WindowDimming {
             }
             WindowDimming._instance = new WindowDimming(ipcSocket);
         }
-        return WindowDimming._instance;
+        await ipcSocket.process();
     }
 
     private _focused?: Content | FloatingContent;

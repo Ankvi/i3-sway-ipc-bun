@@ -16,11 +16,17 @@ export const Severity = {
 
 export type Severity = typeof Severity[keyof typeof Severity];
 
-const severityIndices = [Severity.Debug, Severity.Information, Severity.Warning, Severity.Error] as const;
+export const severities = [Severity.Debug, Severity.Information, Severity.Warning, Severity.Error] as const;
+
+export function setMinimumSeverity(verbose: boolean | Severity) {
+    Bun.env.MINIMUM_SEVERITY = typeof verbose === "boolean"
+        ? Severity.Debug
+        : verbose ?? Severity.Warning;
+}
 
 function consoleLog(severity: Severity, payload: string) {
-    const minimumSeverityIndex = severityIndices.findIndex(x => x === (Bun.env.MINIMUM_SEVERITY ?? Severity.Warning));
-    const severityIndex = severityIndices.findIndex(x => x === severity);
+    const minimumSeverityIndex = severities.findIndex(x => x === (Bun.env.MINIMUM_SEVERITY ?? Severity.Warning));
+    const severityIndex = severities.findIndex(x => x === severity);
     if (minimumSeverityIndex > severityIndex) {
         return;
     }
