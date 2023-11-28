@@ -1,9 +1,7 @@
 #!/usr/bin/env bun
 
 import { Command } from "commander";
-import { IpcSocket } from "./IpcSocket";
 import { Provider } from "./types";
-
 import { MonitorSetup, MonitorSetupArgs } from "./features/monitorSetup";
 import { WindowDimming } from "./features/windowDimming";
 import logger, { Severity, setMinimumSeverity, severities } from "./logging";
