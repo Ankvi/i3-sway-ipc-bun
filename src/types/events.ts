@@ -44,7 +44,7 @@ export type SocketEvents = {
     [SocketEvent.WindowFocusChanged]: [Container];
     [SocketEvent.WindowMoved]: [Container];
     [SocketEvent.Close]: [];
-    [SocketEvent.End]: [];
+    [SocketEvent.End]: [Signals];
 }
 
 export type SocketEventHandler<T extends SocketEvent> = (payload: SocketEvents[T]) => Promise<void> | void;

@@ -10,8 +10,9 @@ import {
     Root,
     isContent,
 } from "../types/containers";
+import { SHARE_FOLDER, RUNTIME_FOLDER } from "../config";
 
-const DIMMED_TRANSPARENCY = 0.8;
+const DIMMED_TRANSPARENCY = 0.9;
 const ACTIVE_TRANSPARENCY = 1.0;
 
 export function findFocused(root: Root): Container | undefined {
@@ -39,7 +40,7 @@ export function flatten(root: Root): Container[] {
     return output;
 }
 
-const WINDOW_DIMMING_LOCK_FILE = `${import.meta.dir}/.lock`;
+const WINDOW_DIMMING_LOCK_FILE = `${RUNTIME_FOLDER}/window-dimming.lock`;
 
 export class WindowDimming {
     private static _instance?: WindowDimming;
@@ -56,7 +57,7 @@ export class WindowDimming {
                 logger.warn(
                     `Found existing window dimming script with pid: '${pid}'. Killing it and restarting`,
                 );
-                await Bun.spawn(["kill", "-TERM", pid]).exited;
+                await Bun.spawn(["kill", "-USR1", pid]).exited;
             }
             WindowDimming._instance = new WindowDimming(ipcSocket);
         }
@@ -70,9 +71,9 @@ export class WindowDimming {
             this.onWindowEvent(event),
         );
 
-        this.initialize();
+        this._ipcSocket.on("end", (signal) => this.shutdown(signal));
 
-        this._ipcSocket.on("end", () => this.shutdown());
+        this.initialize();
     }
 
     private getContent(): (Content | FloatingContent)[] {
@@ -82,11 +83,16 @@ export class WindowDimming {
         return content;
     }
 
-    private shutdown() {
+    private shutdown(signal?: Signals) {
         logger.info("Resetting all transparencies");
         const content = this.getContent();
         for (const con of content) {
             opacity(con, ACTIVE_TRANSPARENCY);
+        }
+
+        if (signal === "SIGUSR1") {
+            logger.info("Shutdown triggered by another window dimming process. No need to delete lock file");
+            return;
         }
 
         if (existsSync(WINDOW_DIMMING_LOCK_FILE)) {

@@ -1,8 +1,24 @@
+import { existsSync, mkdirSync } from "node:fs";
 import pkg from "../package.json" with { type: "json" };
 
 import { Provider } from "./types";
 
+export const PACKAGE_NAME = pkg.name;
 export const CONFIG_FOLDER = `${Bun.env.HOME}/.config/${pkg.name}`;
+export const SHARE_FOLDER = `${Bun.env.HOME}/.local/share/${pkg.name}`;
+
+export const RUNTIME_FOLDER = `${Bun.env.XDG_RUNTIME_DIR}/${pkg.name}`;
+
+if (!existsSync(CONFIG_FOLDER)) {
+    mkdirSync(CONFIG_FOLDER);
+}
+
+if (!existsSync(SHARE_FOLDER)) {
+    mkdirSync(SHARE_FOLDER);
+}
+if (!existsSync(RUNTIME_FOLDER)) {
+    mkdirSync(RUNTIME_FOLDER);
+}
 
 export const COMMAND_CONFIG = {
     i3: ["i3-msg"],

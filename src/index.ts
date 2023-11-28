@@ -46,13 +46,25 @@ try {
             await WindowDimming.start();
         });
 
-    program
-        .command("monitor-setup")
+    const monitorSetup = program
+        .command("monitor-setup");
+
+    monitorSetup
+        .command("load")
         .option("--setup-file <path>", "Optional path to a monitor setup file")
         .action(async (args: MonitorSetupArgs) => {
             const monitorSetup = await MonitorSetup.initialize(args);
             await monitorSetup.checkAndLoadSetup();
         });
+
+    monitorSetup
+        .command("save-current")
+        .option("--setup-file <path>", "Optional path to a monitor setup file")
+        .action(async (args: MonitorSetupArgs) => {
+            const monitorSetup = await MonitorSetup.initialize(args);
+            await monitorSetup.saveCurrentSetup();
+        });
+        
 
     await program.parseAsync();
 } catch (error) {

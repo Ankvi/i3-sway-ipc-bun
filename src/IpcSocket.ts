@@ -27,8 +27,9 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
         this._socket.on("readable", () => this._processMessage());
         this._socket.on("error", logger.error);
 
-        process.on("SIGINT", async () => await this.close());
-        process.on("SIGTERM", async () => await this.close());
+        process.on("SIGINT", () => this.close("SIGINT"));
+        process.on("SIGTERM", () => this.close("SIGTERM"));
+        process.on("SIGUSR1", () => this.close("SIGUSR1"));
     }
 
     static async getSocket(): Promise<IpcSocket> {
@@ -59,25 +60,19 @@ export class IpcSocket extends EventEmitter<SocketEvents> {
         this._sendMessage(command);
     }
 
-    public async close(): Promise<void> {
-        logger.info("Closing socket");
+    public close(signal: Signals): void {
+        logger.info(`Received ${signal}. Closing socket`);
 
-        const ipcSocketClosed = new Promise<void>((resolve) => {
-            this._socket.once("close", () => {
-                logger.info("IPC Socket closed");
-                resolve();
-            });
+        logger.info("Emitting end event");
+        this.emit(SocketEvent.End, signal);
+
+        this._socket.once("close", () => {
+            logger.info("IPC Socket closed");
+            logger.info("Emitting close event");
+            this.emit(SocketEvent.Close);
         });
 
         this._socket.destroy();
-
-        logger.info("Emitting end event");
-        this.emit(SocketEvent.End);
-
-        await ipcSocketClosed;
-
-        logger.info("Emitting close event");
-        this.emit(SocketEvent.Close);
     }
 
     private _sendMessage(message: Buffer) {
