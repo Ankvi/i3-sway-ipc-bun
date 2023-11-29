@@ -1,10 +1,14 @@
 #!/usr/bin/env bun
 
-import { Command } from "commander";
+import * as commander from "commander";
 import { Provider } from "./types";
 import { MonitorSetup, MonitorSetupArgs } from "./features/monitorSetup";
 import { WindowDimming } from "./features/windowDimming";
 import logger, { Severity, setMinimumSeverity, severities } from "./logging";
+import { command } from "./messageCommands";
+import { Command } from "./types/commands";
+import { flattenTree } from "./utilities";
+import { Content, FloatingContent, isContent } from "./types/containers";
 
 declare module "bun" {
     export interface Env {
@@ -21,7 +25,7 @@ interface ProgramOptions {
 }
 
 try {
-    const program = new Command();
+    const program = new commander.Command();
     program
         .option("-p,--provider <provider>", "Provider to use (i3/sway)", "sway")
         .option("-v, --verbose [severity]", "Set verbosity level", (value) => {
@@ -38,10 +42,19 @@ try {
             setMinimumSeverity(options.verbose);
         });
 
-    program
+    const windowDimming = program
         .command("window-dimming")
+
+    windowDimming
+        .command("start")
         .action(async () => {
             await WindowDimming.start();
+        });
+
+    windowDimming
+        .command("stop")
+        .action(async () => {
+            await WindowDimming.stopExisting();
         });
 
     const monitorSetup = program
@@ -63,6 +76,30 @@ try {
             await monitorSetup.saveCurrentSetup();
         });
         
+    program
+        .command("get-active-windows")
+        .action(async () => {
+            const tree = await command(Command.get_tree);
+            const nodes = flattenTree(tree);
+            const windows = nodes
+                .filter<Content | FloatingContent>(isContent)
+                .filter(x => x.rect.x > 0 && x.rect.y > 0);
+                // .map(x => ({
+                //     selector: `[${x.type}_id=${x.id}]`,
+                //     name: x.name
+                // }));
+            console.log(JSON.stringify(windows, null, 4));
+            // return windows.filter(x => x.)
+        })
+
+    const socket = program
+        .command("socket");
+
+    socket
+        .command("kill")
+        .action(async () => {
+            
+        })
 
     await program.parseAsync();
 } catch (error) {

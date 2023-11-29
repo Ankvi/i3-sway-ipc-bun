@@ -19,11 +19,15 @@ function hashOutputKeys(keys: OutputKey[]): string {
     return hashed.toString();
 }
 
-type MonitorSetupFileContent = {
+type MonitorSetupValue = {
     outputs: OutputKey[];
     commands: string[][];
-}[];
-type MonitorSetupConfig = Map<string, string[][]>;
+};
+
+type MonitorSetupFileContent = ({
+    key: string;
+} & MonitorSetupValue)[];
+type MonitorSetupConfig = Map<string, MonitorSetupValue>;
 
 export interface MonitorSetupArgs {
     setupFile?: string;
@@ -51,8 +55,11 @@ export class MonitorSetup {
     private _setups: MonitorSetupConfig = new Map();
 
     private constructor(private _loadedSetups: MonitorSetupFileContent) {
-        for (const setup of this._loadedSetups) {
-            this._setups.set(hashOutputKeys(setup.outputs), setup.commands);
+        for (const { key, outputs, commands } of this._loadedSetups) {
+            this._setups.set(key || hashOutputKeys(outputs), {
+                outputs,
+                commands,
+            });
         }
     }
 
@@ -76,7 +83,7 @@ export class MonitorSetup {
 
         logger.debug("Found setup. Running commands");
 
-        for (const operation of setup) {
+        for (const operation of setup.commands) {
             const command = [...getMessageCommand(), "output", ...operation];
             const proc = Bun.spawn(command);
             await proc.exited;
@@ -96,19 +103,22 @@ export class MonitorSetup {
         const setupKey = hashOutputKeys(outputKeys);
         let setup = this._setups.get(setupKey);
         if (!setup) {
-            setup = outputs.map((output) => {
-                const name = `"${output.make} ${output.model} ${output.serial}"`;
-                if (!output.active) {
-                    return [name, "disable"];
-                }
+            setup = {
+                outputs: outputKeys,
+                commands: outputs.map((output) => {
+                    const name = `"${output.make} ${output.model} ${output.serial}"`;
+                    if (!output.active) {
+                        return [name, "disable"];
+                    }
 
-                return [
-                    name,
-                    "pos",
-                    output.rect.x.toString(),
-                    output.rect.y.toString(),
-                ];
-            });
+                    return [
+                        name,
+                        "pos",
+                        output.rect.x.toString(),
+                        output.rect.y.toString(),
+                    ];
+                }),
+            };
         }
     }
 }
