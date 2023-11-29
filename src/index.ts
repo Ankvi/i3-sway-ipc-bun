@@ -9,6 +9,7 @@ import { command } from "./messageCommands";
 import { Command } from "./types/commands";
 import { flattenTree } from "./utilities";
 import { Content, FloatingContent, isContent } from "./types/containers";
+import { getMessageCommand } from "./config";
 
 declare module "bun" {
     export interface Env {
@@ -77,19 +78,42 @@ try {
         });
         
     program
-        .command("get-active-windows")
+        .command("task-switcher")
         .action(async () => {
             const tree = await command(Command.get_tree);
             const nodes = flattenTree(tree);
             const windows = nodes
                 .filter<Content | FloatingContent>(isContent)
                 .filter(x => x.rect.x > 0 && x.rect.y > 0);
-                // .map(x => ({
-                //     selector: `[${x.type}_id=${x.id}]`,
-                //     name: x.name
-                // }));
-            console.log(JSON.stringify(windows, null, 4));
-            // return windows.filter(x => x.)
+
+            const proc = Bun.spawn(["wofi", "--show", "dmenu"], {
+                stdin: "pipe"
+            });
+
+            const names = windows
+                .map(x => x.name)
+                .join("\n");
+
+            proc.stdin.write(names);
+            proc.stdin.end();
+
+            await proc.exited;
+
+            const selectedName = (await new Response(proc.stdout).text()).trim();
+            logger.debug("Selected name:", selectedName);
+
+            const selected = windows.find(x => x.name === selectedName);
+            if (!selected) {
+                logger.info("Nothing was selected");
+                return;
+            } 
+
+
+            await Bun.spawn([
+                ...getMessageCommand(),
+                `[${selected.type}_id=${selected.id}]`,
+                "focus"
+            ]).exited;
         })
 
     const socket = program
