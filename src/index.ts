@@ -10,6 +10,7 @@ import { Command } from "./types/commands";
 import { flattenTree } from "./utilities";
 import { Content, FloatingContent, isContent } from "./types/containers";
 import { getMessageCommand } from "./config";
+import { taskSwitcher } from "./features/taskSwitcher";
 
 declare module "bun" {
     export interface Env {
@@ -79,42 +80,7 @@ try {
         
     program
         .command("task-switcher")
-        .action(async () => {
-            const tree = await command(Command.get_tree);
-            const nodes = flattenTree(tree);
-            const windows = nodes
-                .filter<Content | FloatingContent>(isContent)
-                .filter(x => x.rect.x > 0 && x.rect.y > 0);
-
-            const proc = Bun.spawn(["wofi", "--show", "dmenu"], {
-                stdin: "pipe"
-            });
-
-            const names = windows
-                .map(x => x.name)
-                .join("\n");
-
-            proc.stdin.write(names);
-            proc.stdin.end();
-
-            await proc.exited;
-
-            const selectedName = (await new Response(proc.stdout).text()).trim();
-            logger.debug("Selected name:", selectedName);
-
-            const selected = windows.find(x => x.name === selectedName);
-            if (!selected) {
-                logger.info("Nothing was selected");
-                return;
-            } 
-
-
-            await Bun.spawn([
-                ...getMessageCommand(),
-                `[${selected.type}_id=${selected.id}]`,
-                "focus"
-            ]).exited;
-        })
+        .action(taskSwitcher);
 
     const socket = program
         .command("socket");
