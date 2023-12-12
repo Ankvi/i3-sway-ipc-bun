@@ -5,11 +5,6 @@ import { Provider } from "./types";
 import { MonitorSetup, MonitorSetupArgs } from "./features/monitorSetup";
 import { WindowDimming } from "./features/windowDimming";
 import logger, { Severity, setMinimumSeverity, severities } from "./logging";
-import { command } from "./messageCommands";
-import { Command } from "./types/commands";
-import { flattenTree } from "./utilities";
-import { Content, FloatingContent, isContent } from "./types/containers";
-import { getMessageCommand } from "./config";
 import { taskSwitcher } from "./features/taskSwitcher";
 
 declare module "bun" {
@@ -60,21 +55,20 @@ try {
         });
 
     const monitorSetup = program
-        .command("monitor-setup");
+        .command("monitor-setup")
+        .option("--setup-file <path>", "Optional path to a monitor setup file");
 
     monitorSetup
         .command("load")
-        .option("--setup-file <path>", "Optional path to a monitor setup file")
         .action(async (args: MonitorSetupArgs) => {
-            const monitorSetup = await MonitorSetup.initialize(args);
+            const monitorSetup = MonitorSetup.initialize(args);
             await monitorSetup.checkAndLoadSetup();
         });
 
     monitorSetup
         .command("save-current")
-        .option("--setup-file <path>", "Optional path to a monitor setup file")
         .action(async (args: MonitorSetupArgs) => {
-            const monitorSetup = await MonitorSetup.initialize(args);
+            const monitorSetup = MonitorSetup.initialize(args);
             await monitorSetup.saveCurrentSetup();
         });
         
