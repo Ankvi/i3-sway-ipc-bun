@@ -29,7 +29,7 @@ export enum ContainerTypes {
 }
 
 type NodeTypesForContainerTypes = {
-    [ContainerTypes.Root]: Nodes<Output, Output>;
+    [ContainerTypes.Root]: Nodes<Output, Output, never>;
     [ContainerTypes.Workspace]: Nodes<Content, Content>;
     [ContainerTypes.Output]: Nodes<Workspace, Workspace>;
     [ContainerTypes.Content]: Nodes;
@@ -37,7 +37,8 @@ type NodeTypesForContainerTypes = {
     [ContainerTypes.DockArea]: Nodes;
 };
 
-export interface Nodes<TNode = never, TFloatingNode = never> {
+export interface Nodes<TNode = never, TFloatingNode = never, TParent extends number | never = number> {
+    parent: TParent
     nodes: TNode[];
     floating_nodes: TFloatingNode[];
 }

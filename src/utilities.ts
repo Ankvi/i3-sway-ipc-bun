@@ -1,6 +1,4 @@
-import { command } from "./messageCommands";
-import { Command } from "./types/commands";
-import { Container, Root } from "./types/containers";
+import { Container } from "./types/containers";
 
 export function flattenTree(root: Container): Container[] {
     const output: Container[] = [root];
@@ -12,8 +10,14 @@ export function flattenTree(root: Container): Container[] {
             break;
         }
 
-        output.push(...current.nodes);
-        output.push(...current.floating_nodes);
+        output.push(...current.nodes.map((node) => ({
+            ...node,
+            parent: current.id
+        })));
+        output.push(...current.floating_nodes.map((node) => ({
+            ...node,
+            parent: current.id
+        })));
 
         queue.push(...current.nodes);
         queue.push(...current.floating_nodes);
@@ -21,3 +25,4 @@ export function flattenTree(root: Container): Container[] {
 
     return output;
 }
+

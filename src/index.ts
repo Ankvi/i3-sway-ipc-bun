@@ -6,6 +6,7 @@ import { MonitorSetup, MonitorSetupArgs } from "./features/monitorSetup";
 import { WindowDimming } from "./features/windowDimming";
 import logger, { Severity, setMinimumSeverity, severities } from "./logging";
 import { taskSwitcher } from "./features/taskSwitcher";
+import * as dropdownTerminal from "./features/dropdownTerminal";
 
 declare module "bun" {
     export interface Env {
@@ -84,6 +85,10 @@ try {
         .action(async () => {
             
         })
+
+    program
+        .command("toggle-dropdown-terminal")
+        .action(() => dropdownTerminal.toggle());
 
     await program.parseAsync();
 } catch (error) {
