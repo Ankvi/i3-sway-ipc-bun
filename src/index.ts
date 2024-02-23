@@ -7,6 +7,7 @@ import { WindowDimming } from "./features/windowDimming";
 import logger, { Severity, setMinimumSeverity, severities } from "./logging";
 import { taskSwitcher } from "./features/taskSwitcher";
 import * as dropdownTerminal from "./features/dropdownTerminal";
+import * as screenLocking from "./features/screenLocking";
 
 declare module "bun" {
     export interface Env {
@@ -14,6 +15,7 @@ declare module "bun" {
         I3SOCK: string;
         SWAYSOCK: string;
         MINIMUM_SEVERITY: Severity;
+        HOME: string;
     }
 }
 
@@ -89,6 +91,10 @@ try {
     program
         .command("toggle-dropdown-terminal")
         .action(() => dropdownTerminal.toggle());
+
+    program
+        .command("lock-screen")
+        .action(() => screenLocking.lock());
 
     await program.parseAsync();
 } catch (error) {

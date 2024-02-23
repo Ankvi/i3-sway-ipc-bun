@@ -7,6 +7,12 @@ import {
     getCommandName,
 } from "./types/commands";
 
+export async function rawCommand(...args: string[]) {
+    const msgCommand = getMessageCommand();
+
+    await Bun.spawn([...msgCommand, ...args]).exited;
+}
+
 export async function command<T extends Command>(
     command: T,
     ...payload: CommandPayloads[T]
