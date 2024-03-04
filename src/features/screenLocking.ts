@@ -12,7 +12,7 @@ const wallpaperFolder = join(Bun.env.HOME, "Pictures", "wallpapers");
 export async function lock() {
     logger.debug("Locking screen");
 
-    const lockCommand = ["swaylock"];
+    const lockCommand = ["swaylock", "-f"];
 
     const lockScreenImages: { [key: Resolution]: string; } = {};
 
