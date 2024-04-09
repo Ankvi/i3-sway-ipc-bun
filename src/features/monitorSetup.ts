@@ -38,9 +38,7 @@ const SETUP_FOLDER = `${CONFIG_FOLDER}/monitor-setups`;
 const DEFAULT_SETUP_FILE = `${CONFIG_FOLDER}/known-monitor-setups.json`;
 
 export class MonitorSetup {
-    public static initialize({
-        setupFile,
-    }: MonitorSetupArgs): MonitorSetup {
+    public static initialize({ setupFile }: MonitorSetupArgs): MonitorSetup {
         return new MonitorSetup(setupFile || DEFAULT_SETUP_FILE);
     }
 
@@ -49,7 +47,7 @@ export class MonitorSetup {
 
     private constructor(private _setupFilePath: string) {
         const content = readFileSync(this._setupFilePath, {
-            encoding: "utf8"
+            encoding: "utf8",
         });
         this._loadedSetups = JSON.parse(content);
         for (const { key, outputs, commands } of this._loadedSetups) {
@@ -98,27 +96,26 @@ export class MonitorSetup {
         );
 
         const setupKey = hashOutputKeys(outputKeys);
-        let setup = this._setups.get(setupKey);
-        if (!setup) {
-            setup = {
-                outputs: outputKeys,
-                commands: outputs.map((output) => {
-                    const name = `"${output.make} ${output.model} ${output.serial}"`;
-                    if (!output.active) {
-                        return [name, "disable"];
-                    }
+        this._setups.set(setupKey, {
+            outputs: outputKeys,
+            commands: outputs.map((output) => {
+                const name = `"${output.make} ${output.model} ${output.serial}"`;
+                if (!output.active) {
+                    return [name, "disable"];
+                }
 
-                    return [
-                        name,
-                        "pos",
-                        output.rect.x.toString(),
-                        output.rect.y.toString(),
-                    ];
-                }),
-            };
-            this._setups.set(setupKey, setup);
-            const content = Array.from(this._setups, ([key, value]) => ({ key, ...value }));
-            await Bun.write(this._setupFilePath, JSON.stringify(content, null, 4));
-        }
+                return [
+                    name,
+                    "pos",
+                    output.rect.x.toString(),
+                    output.rect.y.toString(),
+                ];
+            }),
+        });
+        const content = Array.from(this._setups, ([key, value]) => ({
+            key,
+            ...value,
+        }));
+        await Bun.write(this._setupFilePath, JSON.stringify(content, null, 4));
     }
 }
