@@ -4,10 +4,10 @@ import logger from "../logging";
 import { commandSync } from "../messageCommands";
 import { Command } from "../types/commands";
 import {
-    Container,
-    Content,
-    FloatingContent,
-    Root,
+    type Container,
+    type Content,
+    type FloatingContent,
+    type Root,
     isContent,
 } from "../types/containers";
 import { RUNTIME_FOLDER, CONFIG_FOLDER, getMessageCommand } from "../config";

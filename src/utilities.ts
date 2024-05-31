@@ -1,4 +1,4 @@
-import { Container } from "./types/containers";
+import type { Container } from "./types/containers";
 
 export function flattenTree(root: Container): Container[] {
     const output: Container[] = [root];

@@ -1,13 +1,14 @@
 #!/usr/bin/env bun
 
 import * as commander from "commander";
-import { Provider } from "./types";
-import { MonitorSetup, MonitorSetupArgs } from "./features/monitorSetup";
+import type { Provider } from "./types";
+import { MonitorSetup, type MonitorSetupArgs } from "./features/monitorSetup";
 import { WindowDimming } from "./features/windowDimming";
 import logger, { Severity, setMinimumSeverity, severities } from "./logging";
 import { taskSwitcher } from "./features/taskSwitcher";
 import * as dropdownTerminal from "./features/dropdownTerminal";
 import * as screenLocking from "./features/screenLocking";
+import * as spotify from "./features/spotify";
 
 declare module "bun" {
     export interface Env {
@@ -95,6 +96,14 @@ try {
     program
         .command("lock-screen")
         .action(() => screenLocking.lock());
+
+    const spotifyCommand = program
+        .command("spotify");
+
+    spotifyCommand.command("move-to-scratchpad")
+        .action(async () => {
+            await spotify.moveToScratchpad();
+        })
 
     await program.parseAsync();
 } catch (error) {
