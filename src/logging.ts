@@ -8,104 +8,109 @@ const LOG_FILE_LOCATION = `${LOG_FOLDER}/${pkg.name}.log`;
 const LOG_FILE = Bun.file(LOG_FILE_LOCATION);
 
 export const Severity = {
-    Debug: "debug",
-    Information: "info",
-    Warning: "warn",
-    Error: "error",
+	Debug: "debug",
+	Information: "info",
+	Warning: "warn",
+	Error: "error",
 } as const;
 
-export type Severity = typeof Severity[keyof typeof Severity];
+export type Severity = (typeof Severity)[keyof typeof Severity];
 
-export const severities = [Severity.Debug, Severity.Information, Severity.Warning, Severity.Error] as const;
+export const severities = [
+	Severity.Debug,
+	Severity.Information,
+	Severity.Warning,
+	Severity.Error,
+] as const;
 
 export function setMinimumSeverity(verbose: boolean | Severity) {
-    Bun.env.MINIMUM_SEVERITY = typeof verbose === "boolean"
-        ? Severity.Debug
-        : verbose ?? Severity.Warning;
+	Bun.env.MINIMUM_SEVERITY =
+		typeof verbose === "boolean" ? Severity.Debug : verbose ?? Severity.Warning;
 }
 
 function consoleLog(severity: Severity, payload: string) {
-    const minimumSeverityIndex = severities.findIndex(x => x === (Bun.env.MINIMUM_SEVERITY ?? Severity.Warning));
-    const severityIndex = severities.findIndex(x => x === severity);
-    if (minimumSeverityIndex > severityIndex) {
-        return;
-    }
-    
-    switch (severity) {
-        case "error":
-            console.error(payload);
-            break;
-        case "warn":
-            console.warn(payload);
-            break;
-        case "info":
-            console.info(payload);
-            break;
-        case "debug":
-            console.debug(payload);
-            break;
-        default:
-            console.log(payload);
-            break;
-    }
+	const minimumSeverityIndex = severities.findIndex(
+		(x) => x === (Bun.env.MINIMUM_SEVERITY ?? Severity.Warning),
+	);
+	const severityIndex = severities.findIndex((x) => x === severity);
+	if (minimumSeverityIndex > severityIndex) {
+		return;
+	}
+
+	switch (severity) {
+		case "error":
+			console.error(payload);
+			break;
+		case "warn":
+			console.warn(payload);
+			break;
+		case "info":
+			console.info(payload);
+			break;
+		case "debug":
+			console.debug(payload);
+			break;
+		default:
+			console.log(payload);
+			break;
+	}
 }
 
 function getTimestamp(): [string, string] {
-    const now = new Date();
-    const date = now.toLocaleDateString("nb-NO");
-    const time = now.toLocaleTimeString("nb-NO");
-    return [date, time];
+	const now = new Date();
+	const date = now.toLocaleDateString("nb-NO");
+	const time = now.toLocaleTimeString("nb-NO");
+	return [date, time];
 }
 
 export async function log(severity: Severity, ...args: string[]) {
-    const [date, time] = getTimestamp();
+	const [date, time] = getTimestamp();
 
-    const payload = args.join(" ");
-    const parts = [severity, PID, date, time, payload];
-    const message = parts.join("\t");
+	const payload = args.join(" ");
+	const parts = [severity, PID, date, time, payload];
+	const message = parts.join("\t");
 
-    consoleLog(severity, payload);
+	consoleLog(severity, payload);
 
-    if (await LOG_FILE.exists()) {
-        await appendFile(LOG_FILE_LOCATION, `${message}\n`);
-        return;
-    }
+	if (await LOG_FILE.exists()) {
+		await appendFile(LOG_FILE_LOCATION, `${message}\n`);
+		return;
+	}
 
-    await mkdir(LOG_FOLDER);
-    await Bun.write(LOG_FILE, `${message}\n`);
+	await mkdir(LOG_FOLDER);
+	await Bun.write(LOG_FILE, `${message}\n`);
 }
 
 export async function info(...args: string[]) {
-    await log("info", ...args);
+	await log("info", ...args);
 }
 
 export async function warn(...args: string[]) {
-    await log("warn", ...args);
+	await log("warn", ...args);
 }
 
 export async function error(...args: string[]) {
-    await log("error", ...args);
+	await log("error", ...args);
 }
 
 export async function debug(...args: string[]) {
-    await log("debug", ...args);
+	await log("debug", ...args);
 }
-
 
 type Logger = {
-    log: typeof log;
-    info: typeof info;
-    warn: typeof warn;
-    error: typeof error;
-    debug: typeof debug;
-}
+	log: typeof log;
+	info: typeof info;
+	warn: typeof warn;
+	error: typeof error;
+	debug: typeof debug;
+};
 
 const logger: Logger = {
-    log,
-    info,
-    warn,
-    error,
-    debug
+	log,
+	info,
+	warn,
+	error,
+	debug,
 };
 
 export default logger;
