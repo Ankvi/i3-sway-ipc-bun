@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { CONFIG_FOLDER, getMessageCommand } from "../config";
 import logger from "../logging";
 import { command } from "../messageCommands";
@@ -41,19 +41,22 @@ export class MonitorSetup {
 		return new MonitorSetup(setupFile || DEFAULT_SETUP_FILE);
 	}
 
-	private _loadedSetups: MonitorSetupFileContent;
+	private _loadedSetups: MonitorSetupFileContent = [];
 	private _setups: MonitorSetupConfig = new Map();
 
 	private constructor(private _setupFilePath: string) {
-		const content = readFileSync(this._setupFilePath, {
-			encoding: "utf8",
-		});
-		this._loadedSetups = JSON.parse(content);
-		for (const { key, outputs, commands } of this._loadedSetups) {
-			this._setups.set(key || hashOutputKeys(outputs), {
-				outputs,
-				commands,
+		const setupExists = existsSync(_setupFilePath);
+		if (setupExists) {
+			const content = readFileSync(this._setupFilePath, {
+				encoding: "utf8",
 			});
+			this._loadedSetups = JSON.parse(content);
+			for (const { key, outputs, commands } of this._loadedSetups) {
+				this._setups.set(key || hashOutputKeys(outputs), {
+					outputs,
+					commands,
+				});
+			}
 		}
 	}
 
