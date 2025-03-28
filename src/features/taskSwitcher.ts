@@ -12,7 +12,7 @@ export async function taskSwitcher() {
 		.filter<Content | FloatingContent>(isContent)
 		.filter((x) => x.rect.x > 0 && x.rect.y > 0);
 
-	const proc = Bun.spawn(["wofi", "--insensitive", "--show", "dmenu"], {
+	const proc = Bun.spawn(["rofi", "--insensitive", "-show", "dmenu"], {
 		stdin: "pipe",
 	});
 
